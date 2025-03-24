@@ -1,7 +1,7 @@
 .{
-    .name = .raylib_helper,
+    .name = .zaylib,
     .version = "0.0.0",
-    .fingerprint = 0xa9f9f4d69da1264d,
+    .fingerprint = 0xff50dc31e5b12337,
     .dependencies = .{
         .raylib = .{
             .url = "git+https://github.com/raysan5/raylib#f355d6f1db7d39b983d3a3fa06f9d29447dcc382",
