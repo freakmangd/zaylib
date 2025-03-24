@@ -1,0 +1,16 @@
+.{
+    .name = .raylib_helper,
+    .version = "0.0.0",
+    .fingerprint = 0xa9f9f4d69da1264d,
+    .dependencies = .{
+        .raylib = .{
+            .url = "git+https://github.com/raysan5/raylib#f355d6f1db7d39b983d3a3fa06f9d29447dcc382",
+            .hash = "1220eec8ba69ca1f7c7e2068f755c3f3544f1c7a713888349cba47d71146cf04d061",
+        },
+    },
+    .paths = .{
+        "src",
+        "build.zig",
+        "build.zig.zon",
+    },
+}
