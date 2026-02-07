@@ -1,11 +1,7 @@
 const std = @import("std");
 const builtin = @import("builtin");
 pub const rm = @import("raymath.zig");
-pub const c = @cImport({
-    @cInclude("raylib.h");
-    @cInclude("raymath.h");
-    @cInclude("rlgl.h");
-});
+pub const c = @import("c");
 
 comptime {
     @setEvalBranchQuota(10_000);
@@ -26,6 +22,19 @@ comptime {
     }
 
     // make sure structs are synced
+    if (@import("test_options").check_raylib_decls) {
+        var missing_decls: []const u8 = "MISSING DECLS: ";
+        for (@typeInfo(c).@"struct".decls) |decl| {
+            if (std.ascii.isUpper(decl.name[0]) and // horrible workaround for @compileError decls
+                std.ascii.isLower(decl.name[1]) and
+                @typeInfo(@TypeOf(@field(c, decl.name))) == .@"fn" and
+                !@hasDecl(@This(), decl.name)) missing_decls = missing_decls ++ decl.name ++ "\n";
+        }
+        if (missing_decls.len > "MISSING DECLS: ".len) {
+            @compileError(missing_decls);
+        }
+    }
+
     for (decls) |decl| {
         const ThisDecl = @field(@This(), decl.name);
 
@@ -100,12 +109,12 @@ comptime {
     }
 }
 
-pub const TraceLogCallback = ?*const fn (c_int, [*c]const u8, [*c]c.struct___va_list_tag_1) callconv(.C) void;
-pub const LoadFileDataCallback = ?*const fn ([*c]const u8, [*c]c_int) callconv(.C) [*c]u8;
-pub const SaveFileDataCallback = ?*const fn ([*c]const u8, ?*anyopaque, c_int) callconv(.C) bool;
-pub const LoadFileTextCallback = ?*const fn ([*c]const u8) callconv(.C) [*c]u8;
-pub const SaveFileTextCallback = ?*const fn ([*c]const u8, [*c]u8) callconv(.C) bool;
-pub const AudioCallback = ?*const fn (?*anyopaque, c_uint) callconv(.C) void;
+pub const TraceLogCallback = ?*const fn (c_int, [*c]const u8, [*c]c.struct___va_list_tag_1) callconv(.c) void;
+pub const LoadFileDataCallback = ?*const fn ([*c]const u8, [*c]c_int) callconv(.c) [*c]u8;
+pub const SaveFileDataCallback = ?*const fn ([*c]const u8, ?*anyopaque, c_int) callconv(.c) bool;
+pub const LoadFileTextCallback = ?*const fn ([*c]const u8) callconv(.c) [*c]u8;
+pub const SaveFileTextCallback = ?*const fn ([*c]const u8, [*c]u8) callconv(.c) bool;
+pub const AudioCallback = ?*const fn (?*anyopaque, c_uint) callconv(.c) void;
 
 pub const Color = extern struct {
     r: u8 = 0,
@@ -218,13 +227,12 @@ pub const Vector2 = extern struct {
         return .{ .x = x, .y = y };
     }
 
-    pub fn initAny(x: anytype, y: anytype) Vector2 {
-        return .{ .x = toFloat(f32, x), .y = toFloat(f32, y) };
+    pub fn fromInt(x: anytype, y: anytype) Vector2 {
+        return .{ .x = @floatFromInt(x), .y = @floatFromInt(y) };
     }
 
-    pub fn splat(v: anytype) Vector2 {
-        const v_f32 = toFloat(f32, v);
-        return .{ .x = v_f32, .y = v_f32 };
+    pub fn splat(v: f32) Vector2 {
+        return .{ .x = v, .y = v };
     }
 
     pub fn toSimd(self: @This()) @Vector(2, f32) {
@@ -245,12 +253,8 @@ pub const Vector2 = extern struct {
         return .{ .x = self.x, .y = self.y, .width = width, .height = height };
     }
 
-    pub fn format(value: Vector2, comptime fmt: []const u8, options: std.fmt.FormatOptions, writer: anytype) !void {
-        try writer.writeAll("Vector2{");
-        try std.fmt.formatType(value.x, fmt, options, writer, 0);
-        try writer.writeAll(", ");
-        try std.fmt.formatType(value.y, fmt, options, writer, 0);
-        try writer.writeAll("}");
+    pub fn format(value: Vector2, writer: *std.Io.Writer) !void {
+        try writer.print("({d:.2}, {d:.2})", .{ value.x, value.y });
     }
 
     pub const one: Vector2 = .{ .x = 1, .y = 1 };
@@ -293,27 +297,20 @@ pub const Vector3 = extern struct {
         return .{ .x = x, .y = y, .z = z };
     }
 
-    pub fn initAny(x: anytype, y: anytype, z: anytype) Vector3 {
-        return .{ .x = toFloat(f32, x), .y = toFloat(f32, y), .z = toFloat(f32, z) };
+    pub fn fromInt(x: anytype, y: anytype, z: anytype) Vector3 {
+        return .{ .x = @floatFromInt(x), .y = @floatFromInt(y), .z = @floatFromInt(z) };
     }
 
-    pub fn splat(v: anytype) Vector3 {
-        const v_f32 = toFloat(f32, v);
-        return .{ .x = v_f32, .y = v_f32, .z = v_f32 };
+    pub fn splat(v: f32) Vector3 {
+        return .{ .x = v, .y = v, .z = v };
     }
 
     pub fn toSimd(self: @This()) @Vector(3, f32) {
         return @bitCast(self);
     }
 
-    pub fn format(value: Vector3, comptime fmt: []const u8, options: std.fmt.FormatOptions, writer: anytype) !void {
-        try writer.writeAll("(");
-        try std.fmt.formatType(value.x, fmt, options, writer, 0);
-        try writer.writeAll(", ");
-        try std.fmt.formatType(value.y, fmt, options, writer, 0);
-        try writer.writeAll(", ");
-        try std.fmt.formatType(value.z, fmt, options, writer, 0);
-        try writer.writeAll(")");
+    pub fn format(value: Vector3, writer: *std.Io.Writer) !void {
+        try writer.print("({d:.5}, {d:.5}, {d:.5})", .{ value.x, value.y, value.z });
     }
 
     pub const one: Vector3 = .{ .x = 1, .y = 1, .z = 1 };
@@ -368,25 +365,16 @@ pub const Vector4 = extern struct {
         return .{ .x = x, .y = y, .z = z, .w = w };
     }
 
-    pub fn splat(v: anytype) Vector4 {
-        const v_f32 = toFloat(f32, v);
-        return .{ .x = v_f32, .y = v_f32, .z = v_f32, .w = v_f32 };
+    pub fn splat(v: f32) Vector4 {
+        return .{ .x = v, .y = v, .z = v, .w = v };
     }
 
     pub fn toSimd(self: @This()) @Vector(4, f32) {
         return @bitCast(self);
     }
 
-    pub fn format(value: Vector4, comptime fmt: []const u8, options: std.fmt.FormatOptions, writer: anytype) !void {
-        try writer.writeAll("Vector3{");
-        try std.fmt.formatType(value.x, fmt, options, writer, 0);
-        try writer.writeAll(", ");
-        try std.fmt.formatType(value.y, fmt, options, writer, 0);
-        try writer.writeAll(", ");
-        try std.fmt.formatType(value.z, fmt, options, writer, 0);
-        try writer.writeAll(", ");
-        try std.fmt.formatType(value.w, fmt, options, writer, 0);
-        try writer.writeAll("}");
+    pub fn format(value: Vector4, writer: *std.Io.Writer) !void {
+        try writer.print("({d:.2}, {d:.2}, {d:.2}, {d:.2})", .{ value.x, value.y, value.z, value.w });
     }
 
     pub const vecOne: Vector4 = .{ .x = 1, .y = 1, .z = 1, .w = 1 };
@@ -507,7 +495,7 @@ pub const Font = extern struct {
         return LoadFontFromMemory(file_type, file_data.ptr, @intCast(file_data.len), font_size, ptr, len);
     }
     pub const deinit = UnloadFont;
-    pub const isReady = IsFontReady;
+    pub const isValid = IsFontValid;
     pub const getDefault = GetFontDefault;
     pub const exportAsCode = ExportFontAsCode;
 };
@@ -533,7 +521,7 @@ pub const Texture = extern struct {
     pub const drawRec = DrawTextureRec;
     pub const drawPro = DrawTexturePro;
     pub const drawNPatch = DrawTextureNPatch;
-    pub const isReady = IsTextureReady;
+    pub const isValid = IsTextureValid;
     pub const setWrap = SetTextureWrap;
 };
 pub const Texture2D = Texture;
@@ -556,7 +544,6 @@ pub const Image = extern struct {
 
     pub const init = LoadImage;
     pub const initRaw = LoadImageRaw;
-    pub const initSvg = LoadImageSvg;
     pub const initAnim = LoadImageAnim;
     pub const initAnimFromMemory = LoadImageAnimFromMemory;
     pub const initFromMemory = LoadImageFromMemory;
@@ -598,6 +585,7 @@ pub const Image = extern struct {
     pub const colorContrast = ImageColorContrast;
     pub const colorBrightness = ImageColorBrightness;
     pub const colorReplace = ImageColorReplace;
+    pub const isValid = IsImageValid;
 
     pub const loadColors = LoadImageColors;
     pub const unloadColors = UnloadImageColors;
@@ -677,9 +665,11 @@ pub const RenderTexture = extern struct {
 
     pub const init = LoadRenderTexture;
     pub const deinit = UnloadRenderTexture;
-    pub const isReady = IsRenderTextureReady;
+    pub const isValid = IsRenderTextureValid;
     pub const beginMode = BeginTextureMode;
-    pub const endMode = EndTextureMode;
+    pub fn endMode(_: RenderTexture) void {
+        EndTextureMode();
+    }
 };
 pub const RenderTexture2D = RenderTexture;
 
@@ -700,7 +690,9 @@ pub const Camera3D = extern struct {
     projection: CameraProjection = .perspective,
 
     pub const beginMode = BeginMode3D;
-    pub const endMode = EndMode3D;
+    pub fn endMode(_: Camera3D) void {
+        EndMode3D();
+    }
     pub const getMatrix = GetCameraMatrix;
 
     pub fn getScreenToWorldRay(camera: Camera3D, position: Vector2) Ray {
@@ -728,7 +720,9 @@ pub const Camera2D = extern struct {
     zoom: f32 = 0,
 
     pub const beginMode = BeginMode2D;
-    pub const endMode = EndMode2D;
+    pub fn endMode(_: Camera2D) void {
+        EndMode2D();
+    }
     pub const getMatrix = GetCameraMatrix2D;
     pub fn getWorldToScreen(camera: Camera2D, position: Vector2) Vector2 {
         return GetWorldToScreen2D(position, camera);
@@ -788,7 +782,7 @@ pub const Shader = extern struct {
 
     pub const init = LoadShader;
     pub const initFromMemory = LoadShaderFromMemory;
-    pub const isReady = IsShaderReady;
+    pub const isValid = IsShaderValid;
     pub const getLocation = GetShaderLocation;
     pub const getLocationAttrib = GetShaderLocationAttrib;
     pub const setValue = SetShaderValue;
@@ -798,7 +792,9 @@ pub const Shader = extern struct {
     pub const deinit = UnloadShader;
 
     pub const beginMode = BeginShaderMode;
-    pub const endMode = EndShaderMode;
+    pub fn endMode(_: Shader) void {
+        EndShaderMode();
+    }
 
     pub fn loc(self: Shader, idx: ShaderLocationIndex) c_int {
         return self.locs[idx.uint()];
@@ -859,7 +855,7 @@ pub const Model = extern struct {
 
     pub const init = LoadModel;
     pub const initFromMesh = LoadModelFromMesh;
-    pub const isReady = IsModelReady;
+    pub const isValid = IsModelValid;
     pub const deinit = UnloadModel;
     pub const getBoundingBox = GetModelBoundingBox;
     pub const draw = DrawModel;
@@ -906,7 +902,7 @@ pub const Wave = extern struct {
     pub const exportWave = ExportWave;
     pub const exportWaveAsCode = ExportWaveAsCode;
     pub const toSound = LoadSoundFromWave;
-    pub const isReady = IsWaveReady;
+    pub const isValid = IsWaveValid;
     pub const copy = WaveCopy;
     pub const crop = WaveCrop;
     pub const format = WaveFormat;
@@ -925,7 +921,7 @@ pub const AudioStream = extern struct {
     channels: c_uint = 0,
 
     pub const init = LoadAudioStream;
-    pub const isReady = IsAudioStreamReady;
+    pub const isValid = IsAudioStreamValid;
     pub const deinit = UnloadAudioStream;
     pub const update = UpdateAudioStream;
     pub const isProcessed = IsAudioStreamProcessed;
@@ -950,7 +946,7 @@ pub const Sound = extern struct {
     pub const init = LoadSound;
     pub const initFromWave = LoadSoundFromWave;
     pub const initAlias = LoadSoundAlias;
-    pub const isReady = IsSoundReady;
+    pub const isValid = IsSoundValid;
     pub const update = UpdateSound;
     pub const deinit = UnloadSound;
     pub const deinitAlias = UnloadSoundAlias;
@@ -974,7 +970,7 @@ pub const Music = extern struct {
     pub const init = LoadMusicStream;
     pub const initFromMemory = LoadMusicStreamFromMemory;
     pub const deinit = UnloadMusicStream;
-    pub const isReady = IsMusicReady;
+    pub const isValid = IsMusicValid;
     pub const play = PlayMusicStream;
     pub const isPlaying = IsMusicStreamPlaying;
     pub const update = UpdateMusicStream;
@@ -1014,7 +1010,9 @@ pub const VrStereoConfig = extern struct {
     pub const init = LoadVrStereoConfig;
     pub const deinit = UnloadVrStereoConfig;
     pub const beginMode = BeginVrStereoMode;
-    pub const endMode = EndVrStereoMode;
+    pub fn endMode(_: VrStereoConfig) void {
+        EndVrStereoMode();
+    }
 };
 
 pub const FilePathList = extern struct {
@@ -1556,17 +1554,17 @@ pub fn DrawTextSliceEx(
     );
 }
 
-fn DrawTextSliceExOffsets(
-    _font: Font,
+pub fn DrawTextSliceExOffsets(
+    desired_font: Font,
     text: []const u8,
     position: Vector2,
-    _fontSize: c_int,
+    desired_font_size: c_int,
     spacing: f32,
     tint: Color,
     offset: Vector2,
 ) Vector2 {
-    var font = _font;
-    const fontSize: f32 = @floatFromInt(_fontSize);
+    var font = desired_font;
+    const fontSize: f32 = @floatFromInt(desired_font_size);
 
     if (font.texture.id == 0) font = Font.getDefault(); // Security check in case of not valid font
 
@@ -1590,10 +1588,10 @@ fn DrawTextSliceExOffsets(
                 DrawTextCodepoint(font, codepoint, .{ .x = position.x + textOffsetX, .y = position.y + textOffsetY }, fontSize, tint);
             }
 
-            if (font.glyphs.?[index].advanceX == 0) {
-                textOffsetX += (font.recs.?[index].width * scaleFactor + spacing);
+            if (font.glyphs[index].advanceX == 0) {
+                textOffsetX += (font.recs[index].width * scaleFactor + spacing);
             } else {
-                const advance_x: f32 = @floatFromInt(font.glyphs.?[index].advanceX);
+                const advance_x: f32 = @floatFromInt(font.glyphs[index].advanceX);
                 textOffsetX += (advance_x * scaleFactor + spacing);
             }
         }
@@ -1601,97 +1599,24 @@ fn DrawTextSliceExOffsets(
         i += @intCast(codepointByteCount); // Move text bytes counter to next codepoint
     }
 
-    return Vector2.init(textOffsetX, textOffsetY);
+    return .init(textOffsetX, textOffsetY);
 }
 
-pub const DrawTextWriter = struct {
-    font: Font,
-    pos: Vector2,
-    offset: Vector2 = .{},
-    font_size: c_int,
-    spacing: f32,
-    tint: Color,
-
-    pub const Error = error{};
-
-    pub fn init(x: c_int, y: c_int, font_size: c_int, tint: Color) DrawTextWriter {
-        return initV(
-            Vector2.init(@floatFromInt(x), @floatFromInt(y)),
-            font_size,
-            tint,
-        );
-    }
-
-    pub fn initV(pos: Vector2, font_size: c_int, tint: Color) DrawTextWriter {
-        var font_size_: c_int = font_size;
-
-        if (Font.getDefault().texture.id != 0) {
-            const default_font_size = 10; // Default Font chars height in pixel
-            if (font_size_ < default_font_size) font_size_ = default_font_size;
-            const spacing = @divFloor(font_size_, default_font_size);
-
-            return initEx(
-                Font.getDefault(),
-                pos,
-                font_size,
-                @floatFromInt(spacing),
-                tint,
-            );
-        }
-
-        @panic("No default font found, use initEx or drawTextFmtEx");
-    }
-
-    pub fn initEx(font: Font, pos: Vector2, font_size: c_int, spacing: f32, tint: Color) DrawTextWriter {
-        return .{
-            .font = font,
-            .pos = pos,
-            .font_size = font_size,
-            .spacing = spacing,
-            .tint = tint,
-        };
-    }
-
-    pub fn writer(self: *DrawTextWriter) std.io.GenericWriter(*DrawTextWriter, Error, write) {
-        return .{ .context = self };
-    }
-
-    pub fn reset(self: *DrawTextWriter) void {
-        self.offset = .{};
-    }
-
-    pub fn print(self: *DrawTextWriter, comptime fmt: []const u8, args: anytype) void {
-        self.writer().print(fmt, args) catch unreachable; // ASSUME: DrawTextWriter's error set is empty
-    }
-
-    fn write(self: *DrawTextWriter, bytes: []const u8) Error!usize {
-        const offsets = DrawTextSliceExOffsets(
-            self.font,
-            bytes,
-            self.pos,
-            self.font_size,
-            self.spacing,
-            self.tint,
-            self.offset,
-        );
-        self.offset = offsets;
-        return bytes.len;
-    }
-};
+pub const DrawTextWriter = @import("DrawTextWriter.zig");
 
 pub fn DrawTextFmt(comptime fmt: []const u8, args: anytype, x: c_int, y: c_int, font_size: c_int, tint: Color) void {
-    var w = DrawTextWriter.init(x, y, font_size, tint);
-    w.writer().print(fmt, args) catch unreachable; // ASSUME: DrawTextWriter's error set is empty
+    var w = DrawTextWriter.init(.fromInt(x, y), font_size, tint, .{});
+    w.interface.print(fmt, args) catch unreachable; // ASSUME: DrawTextWriter's error set is empty
 }
 
 pub fn DrawTextFmtV(comptime fmt: []const u8, args: anytype, pos: Vector2, font_size: c_int, tint: Color) void {
-    var w = DrawTextWriter.initV(pos, font_size, tint);
-    w.writer().print(fmt, args) catch unreachable; // ASSUME: DrawTextWriter's error set is empty
+    var w = DrawTextWriter.init(pos, font_size, tint, .{});
+    w.interface.print(fmt, args) catch unreachable; // ASSUME: DrawTextWriter's error set is empty
 }
 
 pub fn DrawTextFmtEx(comptime fmt: []const u8, args: anytype, font: Font, pos: Vector2, font_size: c_int, spacing: f32, tint: Color) void {
-    var w = DrawTextWriter.initEx(font, pos, font_size, spacing, tint);
-    w.writer().print(fmt, args) catch unreachable; // ASSUME: DrawTextWriter's error set is empty
+    var w = DrawTextWriter.init(pos, font_size, tint, .{ .font = font, .spacing = spacing });
+    w.interface.print(fmt, args) catch unreachable; // ASSUME: DrawTextWriter's error set is empty
 }
 
 /// Measure string width for default font
@@ -1761,22 +1686,6 @@ pub fn MeasureTextSliceEx(font: Font, text: []const u8, fontSize: f32, spacing: 
     textSize.y = textHeight;
 
     return textSize;
-}
-
-fn toFloat(comptime T: type, v: anytype) T {
-    if (comptime builtin.zig_version.order(std.SemanticVersion.parse("0.14.0-dev.1410+13da34955") catch unreachable) == .lt) {
-        return switch (@typeInfo(@TypeOf(v))) {
-            .ComptimeFloat, .Float => @floatCast(v),
-            .ComptimeInt, .Int => @floatFromInt(v),
-            else => @compileError("Expected int or float type, found " ++ @typeName(@TypeOf(v))),
-        };
-    } else {
-        return switch (@typeInfo(@TypeOf(v))) {
-            .comptime_float, .float => @floatCast(v),
-            .comptime_int, .int => @floatFromInt(v),
-            else => @compileError("Expected int or float type, found " ++ @typeName(@TypeOf(v))),
-        };
-    }
 }
 
 // redefs
@@ -1909,7 +1818,7 @@ pub extern fn DrawPixelV(position: Vector2, color: Color) void;
 pub extern fn DrawLine(startPosX: c_int, startPosY: c_int, endPosX: c_int, endPosY: c_int, color: Color) void;
 pub extern fn DrawLineV(startPos: Vector2, endPos: Vector2, color: Color) void;
 pub extern fn LoadImageFromScreen() Image;
-pub extern fn IsImageReady(image: Image) bool;
+pub extern fn IsImageValid(image: Image) bool;
 pub extern fn UnloadImage(image: Image) void;
 pub extern fn GenImageColor(width: c_int, height: c_int, color: Color) Image;
 pub extern fn GenImageGradientLinear(width: c_int, height: c_int, direction: c_int, start: Color, end: Color) Image;
@@ -1926,7 +1835,7 @@ pub extern fn LoadFontEx(fileName: [*:0]const u8, fontSize: c_int, codepoints: ?
 pub extern fn LoadFontFromImage(image: Image, key: Color, firstChar: c_int) Font;
 pub extern fn LoadFontFromMemory(fileType: [*:0]const u8, fileData: [*]const u8, dataSize: c_int, fontSize: c_int, codepoints: ?[*]const c_int, codepointCount: c_int) Font;
 pub extern fn UnloadFont(font: Font) void;
-pub extern fn IsFontReady(font: Font) bool;
+pub extern fn IsFontValid(font: Font) bool;
 pub extern fn GetFontDefault() Font;
 pub extern fn LoadFont(fileName: [*:0]const u8) Font;
 pub extern fn ExportFontAsCode(font: Font, fileName: [*:0]const u8) bool;
@@ -1949,7 +1858,6 @@ pub extern fn LoadTextureFromImage(image: Image) Texture2D;
 pub extern fn LoadTextureCubemap(image: Image, layout: CubemapLayout) TextureCubemap;
 pub extern fn LoadImage(fileName: [*:0]const u8) Image;
 pub extern fn LoadImageRaw(fileName: [*:0]const u8, width: c_int, height: c_int, format: c_int, headerSize: c_int) Image;
-pub extern fn LoadImageSvg(fileNameOrString: [*:0]const u8, width: c_int, height: c_int) Image;
 pub extern fn LoadImageAnim(fileName: [*:0]const u8, frames: *c_int) Image;
 pub extern fn LoadImageAnimFromMemory(fileType: [*:0]const u8, fileData: [*c]const u8, dataSize: c_int, frames: *c_int) Image;
 pub extern fn LoadImageFromMemory(fileType: [*:0]const u8, fileData: [*c]const u8, dataSize: c_int) Image;
@@ -2050,6 +1958,7 @@ pub extern fn GetWindowScaleDPI() Vector2;
 pub extern fn GetMonitorName(monitor: c_int) [*:0]const u8;
 pub extern fn SetClipboardText(text: [*:0]const u8) void;
 pub extern fn GetClipboardText() ?[*:0]const u8;
+pub extern fn GetClipboardImage() Image;
 pub extern fn EnableEventWaiting() void;
 pub extern fn DisableEventWaiting() void;
 pub extern fn ShowCursor() void;
@@ -2076,7 +1985,7 @@ pub extern fn LoadVrStereoConfig(device: VrDeviceInfo) VrStereoConfig;
 pub extern fn UnloadVrStereoConfig(config: VrStereoConfig) void;
 pub extern fn LoadShader(vsFileName: ?[*:0]const u8, fsFileName: ?[*:0]const u8) Shader;
 pub extern fn LoadShaderFromMemory(vsCode: ?[*:0]const u8, fsCode: ?[*:0]const u8) Shader;
-pub extern fn IsShaderReady(shader: Shader) bool;
+pub extern fn IsShaderValid(shader: Shader) bool;
 pub extern fn GetShaderLocation(shader: Shader, uniformName: [*:0]const u8) c_int;
 pub extern fn GetShaderLocationAttrib(shader: Shader, attribName: [*:0]const u8) c_int;
 pub extern fn SetShaderValue(shader: Shader, locIndex: c_int, value: ?*const anyopaque, uniformType: ShaderUniformDataType) void;
@@ -2150,8 +2059,10 @@ pub extern fn GetDirectoryPath(filePath: [*:0]const u8) [*:0]const u8;
 pub extern fn GetPrevDirectoryPath(dirPath: [*:0]const u8) [*:0]const u8;
 pub extern fn GetWorkingDirectory() ?[*:0]const u8;
 pub extern fn GetApplicationDirectory() [*:0]const u8;
+pub extern fn MakeDirectory(dirPath: [*c]const u8) c_int;
 pub extern fn ChangeDirectory(dir: [*:0]const u8) bool;
 pub extern fn IsPathFile(path: [*:0]const u8) bool;
+pub extern fn IsFileNameValid(fileName: [*c]const u8) bool;
 pub extern fn IsMouseButtonPressed(button: MouseButton) bool;
 pub extern fn IsMouseButtonDown(button: MouseButton) bool;
 pub extern fn IsMouseButtonReleased(button: MouseButton) bool;
@@ -2198,7 +2109,7 @@ pub extern fn GetGesturePinchVector() Vector2;
 pub extern fn GetGesturePinchAngle() f32;
 pub extern fn LoadMusicStream(fileName: [*c]const u8) Music;
 pub extern fn LoadMusicStreamFromMemory(fileType: [*c]const u8, data: [*c]const u8, dataSize: c_int) Music;
-pub extern fn IsMusicReady(music: Music) bool;
+pub extern fn IsMusicValid(music: Music) bool;
 pub extern fn UnloadMusicStream(music: Music) void;
 pub extern fn PlayMusicStream(music: Music) void;
 pub extern fn IsMusicStreamPlaying(music: Music) bool;
@@ -2234,7 +2145,7 @@ pub extern fn GenMeshHeightmap(heightmap: Image, size: Vector3) Mesh;
 pub extern fn GenMeshCubicmap(cubicmap: Image, cubeSize: Vector3) Mesh;
 pub extern fn LoadModel(fileName: [*:0]const u8) Model;
 pub extern fn LoadModelFromMesh(mesh: Mesh) Model;
-pub extern fn IsModelReady(model: Model) bool;
+pub extern fn IsModelValid(model: Model) bool;
 pub extern fn UnloadModel(model: Model) void;
 pub extern fn GetModelBoundingBox(model: Model) BoundingBox;
 pub extern fn DrawModel(model: Model, position: Vector3, scale: f32, tint: Color) void;
@@ -2246,7 +2157,7 @@ pub extern fn UnloadRenderTexture(target: RenderTexture2D) void;
 pub extern fn LoadSound(fileName: [*:0]const u8) Sound;
 pub extern fn LoadSoundFromWave(wave: Wave) Sound;
 pub extern fn LoadSoundAlias(source: Sound) Sound;
-pub extern fn IsSoundReady(sound: Sound) bool;
+pub extern fn IsSoundValid(sound: Sound) bool;
 pub extern fn UpdateSound(sound: Sound, data: ?*const anyopaque, sampleCount: c_int) void;
 pub extern fn UnloadSound(sound: Sound) void;
 pub extern fn UnloadSoundAlias(alias: Sound) void;
@@ -2263,10 +2174,10 @@ pub extern fn LoadWaveFromMemory(fileType: [*c]const u8, fileData: [*c]const u8,
 pub extern fn UnloadWave(wave: Wave) void;
 pub extern fn ExportWave(wave: Wave, fileName: [*:0]const u8) bool;
 pub extern fn ExportWaveAsCode(wave: Wave, fileName: [*:0]const u8) bool;
-pub extern fn IsWaveReady(wave: Wave) bool;
+pub extern fn IsWaveValid(wave: Wave) bool;
 pub extern fn WaveCopy(wave: Wave) Wave;
 pub extern fn LoadAudioStream(sampleRate: c_uint, sampleSize: c_uint, channels: c_uint) AudioStream;
-pub extern fn IsAudioStreamReady(stream: AudioStream) bool;
+pub extern fn IsAudioStreamValid(stream: AudioStream) bool;
 pub extern fn UnloadAudioStream(stream: AudioStream) void;
 pub extern fn UpdateAudioStream(stream: AudioStream, data: ?*const anyopaque, frameCount: c_int) void;
 pub extern fn IsAudioStreamProcessed(stream: AudioStream) bool;
@@ -2284,9 +2195,9 @@ pub extern fn AttachAudioStreamProcessor(stream: AudioStream, processor: AudioCa
 pub extern fn DetachAudioStreamProcessor(stream: AudioStream, processor: AudioCallback) void;
 pub extern fn UpdateCamera(camera: *Camera, mode: CameraMode) void;
 pub extern fn UpdateCameraPro(camera: *Camera, movement: Vector3, rotation: Vector3, zoom: f32) void;
-pub extern fn IsTextureReady(texture: Texture2D) bool;
+pub extern fn IsTextureValid(texture: Texture2D) bool;
 pub extern fn UnloadTexture(texture: Texture2D) void;
-pub extern fn IsRenderTextureReady(target: RenderTexture2D) bool;
+pub extern fn IsRenderTextureValid(target: RenderTexture2D) bool;
 pub extern fn UpdateTexture(texture: Texture2D, pixels: ?*const anyopaque) void;
 pub extern fn UpdateTextureRec(texture: Texture2D, rec: Rectangle, pixels: ?*const anyopaque) void;
 pub extern fn SetTextureWrap(texture: Texture2D, wrap: TextureWrap) void;
@@ -2401,7 +2312,7 @@ pub extern fn DrawBillboard(camera: Camera, texture: Texture2D, position: Vector
 pub extern fn DrawBillboardRec(camera: Camera, texture: Texture2D, source: Rectangle, position: Vector3, size: Vector2, tint: Color) void;
 pub extern fn DrawBillboardPro(camera: Camera, texture: Texture2D, source: Rectangle, position: Vector3, up: Vector3, size: Vector2, origin: Vector2, rotation: f32, tint: Color) void;
 pub extern fn LoadMaterials(fileName: [*c]const u8, materialCount: [*c]c_int) [*c]Material;
-pub extern fn IsMaterialReady(material: Material) bool;
+pub extern fn IsMaterialValid(material: Material) bool;
 pub extern fn UnloadMaterial(material: Material) void;
 pub extern fn SetMaterialTexture(material: [*c]Material, mapType: c_int, texture: Texture2D) void;
 pub extern fn SetModelMeshMaterial(model: [*c]Model, meshId: c_int, materialId: c_int) void;
@@ -2578,9 +2489,6 @@ pub extern fn rlUpdateVertexBufferElements(id: c_uint, data: ?*const anyopaque, 
 pub extern fn rlUnloadVertexArray(vaoId: c_uint) void;
 pub extern fn rlUnloadVertexBuffer(vboId: c_uint) void;
 pub extern fn rlSetVertexAttribute(index: c_uint, compSize: c_int, @"type": VertexAttributeType, normalized: bool, stride: c_int, pointer: ?*const anyopaque) void;
-pub extern fn glVertexAttribPointer(index: c_uint, compSize: c_int, @"type": VertexAttributeType, normalized: bool, stride: c_int, pointer: ?*const anyopaque) void;
-pub extern fn glVertexAttribIPointer(index: c_uint, compSize: c_int, @"type": VertexAttributeIntType, stride: c_int, pointer: ?*const anyopaque) void;
-pub extern fn glVertexAttribLPointer(index: c_uint, compSize: c_int, @"type": VertexAttributeLongType, stride: c_int, pointer: ?*const anyopaque) void;
 pub extern fn rlSetVertexAttributeDivisor(index: c_uint, divisor: c_int) void;
 pub extern fn rlSetVertexAttributeDefault(locIndex: c_int, value: ?*const anyopaque, attribType: ShaderAttributeDataType, count: c_int) void;
 pub extern fn rlDrawVertexArray(offset: c_int, count: c_int) void;
