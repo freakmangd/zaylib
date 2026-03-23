@@ -1016,7 +1016,6 @@ pub const VrStereoConfig = extern struct {
 };
 
 pub const FilePathList = extern struct {
-    capacity: c_uint = 0,
     count: c_uint = 0,
     paths: [*c][*c]u8 = null,
 };
