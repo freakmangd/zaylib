@@ -6,7 +6,7 @@ pub const c = @import("c");
 comptime {
     @setEvalBranchQuota(10_000);
 
-    const decls = std.meta.declarations(@This());
+    const decls = @typeInfo(@This()).@"struct".decls;
 
     // check for type errors in everything but c decls
     for (decls) |decl| {
@@ -39,74 +39,108 @@ comptime {
         const ThisDecl = @field(@This(), decl.name);
 
         if (!@hasDecl(c, decl.name) or
-            @TypeOf(ThisDecl) != type or
-            @typeInfo(ThisDecl) != .@"struct") continue;
+            @TypeOf(ThisDecl) != type) continue;
 
         const CDecl = @field(c, decl.name);
 
-        if (@sizeOf(CDecl) != @sizeOf(ThisDecl)) {
-            @compileError(
-                std.fmt.comptimePrint("Mismatched size for type {s}. Expected {} found {}", .{
-                    decl.name,
-                    @sizeOf(CDecl),
-                    @sizeOf(ThisDecl),
-                }),
-            );
+        if (std.meta.activeTag(@typeInfo(ThisDecl)) != std.meta.activeTag(@typeInfo(CDecl))) {
+            if (@sizeOf(ThisDecl) != @sizeOf(CDecl)) {
+                fail("{s} has size of {}, expected {}", .{ decl.name, @sizeOf(ThisDecl), @sizeOf(CDecl) });
+            }
+            continue;
         }
 
-        if (@typeInfo(CDecl) != .@"struct") continue;
-
-        const ThisDecl_info = @typeInfo(ThisDecl).@"struct";
-        const CDecl_info = @typeInfo(CDecl).@"struct";
-
-        if (ThisDecl_info.fields.len != CDecl_info.fields.len) {
-            @compileError(
-                std.fmt.comptimePrint("Mismatched fields len for type {s}. Expected {} found {}", .{
-                    decl.name,
-                    CDecl_info.fields.len,
-                    ThisDecl_info.fields.len,
-                }),
-            );
-        }
-
-        for (ThisDecl_info.fields) |this_field| {
-            const this_field_info = @typeInfo(this_field.type);
-            const c_field = @FieldType(CDecl, this_field.name);
-            const c_field_info = @typeInfo(c_field);
-
-            if (@offsetOf(ThisDecl, this_field.name) != @offsetOf(CDecl, this_field.name)) {
-                @compileError(
-                    std.fmt.comptimePrint("Mismatched field offset `{s}` for type `{s}`. Expected {} found {}", .{
-                        c_field.name,
-                        decl.name,
-                        @offsetOf(CDecl, c_field.name),
-                        @offsetOf(ThisDecl, this_field.name),
-                    }),
-                );
-            }
-
-            if (this_field.type != c_field) bad_field_type: {
-                switch (c_field_info) {
-                    .pointer, .optional, .array, .@"struct" => {
-                        if (@sizeOf(this_field.type) == @sizeOf(c_field)) break :bad_field_type;
-                    },
-                    else => {
-                        if (c_field_info == .int and this_field_info == .@"enum" and
-                            this_field_info.@"enum".tag_type == c_field) break :bad_field_type;
-                    },
-                }
-
-                @compileError(
-                    std.fmt.comptimePrint("Mismatched field type `{s}` for type `{s}`. Expected {} found {}", .{
-                        c_field.name,
-                        decl.name,
-                        c_field.type,
-                        this_field.type,
-                    }),
-                );
-            }
+        switch (@typeInfo(ThisDecl)) {
+            .@"struct" => checkStructDecl(decl),
+            .@"fn" => checkFnDecl(decl),
+            else => continue,
         }
     }
+}
+
+fn checkStructDecl(decl: std.builtin.Type.Declaration) void {
+    const ThisDecl = @field(@This(), decl.name);
+    const CDecl = @field(c, decl.name);
+
+    if (@sizeOf(CDecl) != @sizeOf(ThisDecl)) {
+        @compileError(
+            std.fmt.comptimePrint("Mismatched size for type {s}. Expected {} found {}", .{
+                decl.name,
+                @sizeOf(CDecl),
+                @sizeOf(ThisDecl),
+            }),
+        );
+    }
+
+    const ThisDecl_info = @typeInfo(ThisDecl).@"struct";
+    const CDecl_info = @typeInfo(CDecl).@"struct";
+
+    if (ThisDecl_info.fields.len != CDecl_info.fields.len) {
+        @compileError(
+            std.fmt.comptimePrint("Mismatched fields len for type {s}. Expected {} found {}", .{
+                decl.name,
+                CDecl_info.fields.len,
+                ThisDecl_info.fields.len,
+            }),
+        );
+    }
+
+    for (ThisDecl_info.fields) |this_field| {
+        const this_field_info = @typeInfo(this_field.type);
+        const c_field = @FieldType(CDecl, this_field.name);
+        const c_field_info = @typeInfo(c_field);
+
+        if (@offsetOf(ThisDecl, this_field.name) != @offsetOf(CDecl, this_field.name)) {
+            @compileError(
+                std.fmt.comptimePrint("Mismatched field offset `{s}` for type `{s}`. Expected {} found {}", .{
+                    c_field.name,
+                    decl.name,
+                    @offsetOf(CDecl, c_field.name),
+                    @offsetOf(ThisDecl, this_field.name),
+                }),
+            );
+        }
+
+        if (this_field.type != c_field) bad_field_type: {
+            switch (c_field_info) {
+                .pointer, .optional, .array, .@"struct" => {
+                    if (@sizeOf(this_field.type) == @sizeOf(c_field)) break :bad_field_type;
+                },
+                else => {
+                    if (c_field_info == .int and this_field_info == .@"enum" and
+                        this_field_info.@"enum".tag_type == c_field) break :bad_field_type;
+                },
+            }
+
+            fail("Mismatched field type `{s}` for type `{s}`. Expected {} found {}", .{
+                c_field.name,
+                decl.name,
+                c_field.type,
+                this_field.type,
+            });
+        }
+    }
+}
+
+fn checkFnDecl(decl: std.builtin.Type.Declaration) void {
+    const ThisDecl = @field(@This(), decl.name);
+    const this_ti = @typeInfo(ThisDecl).@"fn";
+    const CDecl = @field(c, decl.name);
+    const c_ti = @typeInfo(CDecl).@"fn";
+
+    if (this_ti.params.len != c_ti.params.len) {
+        fail("function {s} has differing param length. expected {} found {}", .{ decl.name, c_ti.params.len, this_ti.params.len });
+    }
+
+    for (this_ti.params, c_ti.params, 0..) |this_param, c_param, i| {
+        if (this_param.type != c_param.type) {
+            fail("function {s}'s param {} has type {}, expected {}", .{ decl.name, i, this_param.type, c_param.type });
+        }
+    }
+}
+
+fn fail(comptime fmt: []const u8, args: anytype) void {
+    @compileError(std.fmt.comptimePrint(fmt, args));
 }
 
 pub const TraceLogCallback = ?*const fn (c_int, [*c]const u8, [*c]c.struct___va_list_tag_1) callconv(.c) void;
@@ -736,21 +770,17 @@ pub const Mesh = extern struct {
     vertexCount: c_int = 0,
     triangleCount: c_int = 0,
     vertices: [*c]f32 = null,
-
     texcoords: [*c]f32 = null,
     texcoords2: [*c]f32 = null,
     normals: [*c]f32 = null,
     tangents: [*c]f32 = null,
     colors: [*c]u8 = null,
     indices: [*c]c_ushort = null,
-
+    boneCount: c_int = 0,
+    boneIndices: [*c]u8 = null,
+    boneWeights: [*c]f32 = null,
     animVertices: [*c]f32 = null,
     animNormals: [*c]f32 = null,
-    boneIds: [*c]u8 = null,
-    boneWeights: [*c]f32 = null,
-    boneMatrices: [*c]Matrix = null,
-    boneCount: c_int = 0,
-
     vaoId: c_uint = 0,
     vboId: [*c]c_uint = null,
 
@@ -842,16 +872,24 @@ pub const BoneInfo = extern struct {
     parent: c_int = 0,
 };
 
+pub const ModelAnimPose = [*c]Transform;
+
+pub const ModelSkeleton = extern struct {
+    boneCount: c_int = 0,
+    bones: [*c]BoneInfo = null,
+    bindPose: ModelAnimPose = null,
+};
+
 pub const Model = extern struct {
-    transform: Matrix = .{},
+    transform: Matrix = @import("std").mem.zeroes(Matrix),
     meshCount: c_int = 0,
     materialCount: c_int = 0,
     meshes: [*c]Mesh = null,
     materials: [*c]Material = null,
     meshMaterial: [*c]c_int = null,
-    boneCount: c_int = 0,
-    bones: [*c]BoneInfo = null,
-    bindPose: [*c]Transform = null,
+    skeleton: ModelSkeleton = @import("std").mem.zeroes(ModelSkeleton),
+    currentPose: ModelAnimPose = null,
+    boneMatrices: [*c]Matrix = null,
 
     pub const init = LoadModel;
     pub const initFromMesh = LoadModelFromMesh;
@@ -865,11 +903,10 @@ pub const Model = extern struct {
 };
 
 pub const ModelAnimation = extern struct {
+    name: [32]u8 = @import("std").mem.zeroes([32]u8),
     boneCount: c_int = 0,
-    frameCount: c_int = 0,
-    bones: [*c]BoneInfo = null,
-    framePoses: [*c][*c]Transform = null,
-    name: [32]u8 = .{0} ** 32,
+    keyframeCount: c_int = 0,
+    keyframePoses: [*c]ModelAnimPose = null,
 };
 
 pub const Ray = extern struct {
@@ -2317,7 +2354,6 @@ pub extern fn SetMaterialTexture(material: [*c]Material, mapType: c_int, texture
 pub extern fn SetModelMeshMaterial(model: [*c]Model, meshId: c_int, materialId: c_int) void;
 pub extern fn LoadModelAnimations(fileName: [*c]const u8, animCount: [*c]c_int) [*c]ModelAnimation;
 pub extern fn UpdateModelAnimation(model: Model, anim: ModelAnimation, frame: c_int) void;
-pub extern fn UnloadModelAnimation(anim: ModelAnimation) void;
 pub extern fn UnloadModelAnimations(animations: [*c]ModelAnimation, animCount: c_int) void;
 pub extern fn IsModelAnimationValid(model: Model, anim: ModelAnimation) bool;
 pub extern fn CheckCollisionSpheres(center1: Vector3, radius1: f32, center2: Vector3, radius2: f32) bool;
@@ -2418,6 +2454,8 @@ pub extern fn rlEnableVertexBufferElement(id: c_uint) void;
 pub extern fn rlDisableVertexBufferElement() void;
 pub extern fn rlEnableVertexAttribute(index: c_uint) void;
 pub extern fn rlDisableVertexAttribute(index: c_uint) void;
+pub extern fn rlEnableStatePointer(vertexAttribType: c_int, buffer: ?*anyopaque) void;
+pub extern fn rlDisableStatePointer(vertexAttribType: c_int) void;
 pub extern fn rlActiveTextureSlot(slot: c_int) void;
 pub extern fn rlEnableTexture(id: c_uint) void;
 pub extern fn rlDisableTexture() void;
@@ -2446,8 +2484,11 @@ pub extern fn rlSetCullFace(mode: c_int) void;
 pub extern fn rlEnableScissorTest() void;
 pub extern fn rlDisableScissorTest() void;
 pub extern fn rlScissor(x: c_int, y: c_int, width: c_int, height: c_int) void;
-pub extern fn rlEnableWireMode() void;
 pub extern fn rlEnablePointMode() void;
+pub extern fn rlDisablePointMode() void;
+pub extern fn rlSetPointSize(size: f32) void;
+pub extern fn rlGetPointSize() f32;
+pub extern fn rlEnableWireMode() void;
 pub extern fn rlDisableWireMode() void;
 pub extern fn rlSetLineWidth(width: f32) void;
 pub extern fn rlGetLineWidth() f32;
@@ -2465,6 +2506,7 @@ pub extern fn rlSetBlendFactorsSeparate(glSrcRGB: c_int, glDstRGB: c_int, glSrcA
 pub extern fn rlglInit(width: c_int, height: c_int) void;
 pub extern fn rlglClose() void;
 pub extern fn rlLoadExtensions(loader: ?*anyopaque) void;
+pub extern fn rlGetProcAddress(procName: [*c]const u8) ?*anyopaque;
 pub extern fn rlGetVersion() c_int;
 pub extern fn rlSetFramebufferWidth(width: c_int) void;
 pub extern fn rlGetFramebufferWidth() c_int;
@@ -2487,16 +2529,16 @@ pub extern fn rlUpdateVertexBuffer(bufferId: c_uint, data: ?*const anyopaque, da
 pub extern fn rlUpdateVertexBufferElements(id: c_uint, data: ?*const anyopaque, dataSize: c_int, offset: c_int) void;
 pub extern fn rlUnloadVertexArray(vaoId: c_uint) void;
 pub extern fn rlUnloadVertexBuffer(vboId: c_uint) void;
-pub extern fn rlSetVertexAttribute(index: c_uint, compSize: c_int, @"type": VertexAttributeType, normalized: bool, stride: c_int, pointer: ?*const anyopaque) void;
+pub extern fn rlSetVertexAttribute(index: c_uint, compSize: c_int, @"type": c_int, normalized: bool, stride: c_int, offset: c_int) void;
 pub extern fn rlSetVertexAttributeDivisor(index: c_uint, divisor: c_int) void;
-pub extern fn rlSetVertexAttributeDefault(locIndex: c_int, value: ?*const anyopaque, attribType: ShaderAttributeDataType, count: c_int) void;
+pub extern fn rlSetVertexAttributeDefault(locIndex: c_int, value: ?*const anyopaque, attribType: c_int, count: c_int) void;
 pub extern fn rlDrawVertexArray(offset: c_int, count: c_int) void;
 pub extern fn rlDrawVertexArrayElements(offset: c_int, count: c_int, buffer: ?*const anyopaque) void;
 pub extern fn rlDrawVertexArrayInstanced(offset: c_int, count: c_int, instances: c_int) void;
 pub extern fn rlDrawVertexArrayElementsInstanced(offset: c_int, count: c_int, buffer: ?*const anyopaque, instances: c_int) void;
 pub extern fn rlLoadTexture(data: ?*const anyopaque, width: c_int, height: c_int, format: c_int, mipmapCount: c_int) c_uint;
 pub extern fn rlLoadTextureDepth(width: c_int, height: c_int, useRenderBuffer: bool) c_uint;
-pub extern fn rlLoadTextureCubemap(data: ?*const anyopaque, size: c_int, format: c_int) c_uint;
+pub extern fn rlLoadTextureCubemap(data: ?*const anyopaque, size: c_int, format: c_int, mipmapCount: c_int) c_uint;
 pub extern fn rlUpdateTexture(id: c_uint, offsetX: c_int, offsetY: c_int, width: c_int, height: c_int, format: c_int, data: ?*const anyopaque) void;
 pub extern fn rlGetGlTextureFormats(format: c_int, glInternalFormat: [*c]c_uint, glFormat: [*c]c_uint, glType: [*c]c_uint) void;
 pub extern fn rlGetPixelFormatName(format: c_uint) [*c]const u8;
@@ -2505,20 +2547,24 @@ pub extern fn rlGenTextureMipmaps(id: c_uint, width: c_int, height: c_int, forma
 pub extern fn rlReadTexturePixels(id: c_uint, width: c_int, height: c_int, format: c_int) ?*anyopaque;
 pub extern fn rlReadScreenPixels(width: c_int, height: c_int) [*c]u8;
 pub extern fn rlLoadFramebuffer() c_uint;
-pub extern fn rlFramebufferAttach(fboId: c_uint, texId: c_uint, attachType: c_int, texType: c_int, mipLevel: c_int) void;
+pub extern fn rlFramebufferAttach(id: c_uint, texId: c_uint, attachType: c_int, texType: c_int, mipLevel: c_int) void;
 pub extern fn rlFramebufferComplete(id: c_uint) bool;
 pub extern fn rlUnloadFramebuffer(id: c_uint) void;
-pub extern fn rlLoadShaderCode(vsCode: [*c]const u8, fsCode: [*c]const u8) c_uint;
-pub extern fn rlCompileShader(shaderCode: [*c]const u8, @"type": c_int) c_uint;
-pub extern fn rlLoadShaderProgram(vShaderId: c_uint, fShaderId: c_uint) c_uint;
+pub extern fn rlCopyFramebuffer(x: c_int, y: c_int, width: c_int, height: c_int, format: c_int, pixels: ?*anyopaque) void;
+pub extern fn rlResizeFramebuffer(width: c_int, height: c_int) void;
+pub extern fn rlLoadShader(code: [*c]const u8, @"type": c_int) c_uint;
+pub extern fn rlLoadShaderProgram(vsCode: [*c]const u8, fsCode: [*c]const u8) c_uint;
+pub extern fn rlLoadShaderProgramEx(vsId: c_uint, fsId: c_uint) c_uint;
+pub extern fn rlLoadShaderProgramCompute(csId: c_uint) c_uint;
+pub extern fn rlUnloadShader(id: c_uint) void;
 pub extern fn rlUnloadShaderProgram(id: c_uint) void;
-pub extern fn rlGetLocationUniform(shaderId: c_uint, uniformName: [*c]const u8) c_int;
-pub extern fn rlGetLocationAttrib(shaderId: c_uint, attribName: [*c]const u8) c_int;
-pub extern fn rlSetUniform(locIndex: c_int, value: ?*const anyopaque, uniformType: ShaderUniformDataType, count: c_int) void;
+pub extern fn rlGetLocationUniform(id: c_uint, uniformName: [*c]const u8) c_int;
+pub extern fn rlGetLocationAttrib(id: c_uint, attribName: [*c]const u8) c_int;
+pub extern fn rlSetUniform(locIndex: c_int, value: ?*const anyopaque, uniformType: c_int, count: c_int) void;
 pub extern fn rlSetUniformMatrix(locIndex: c_int, mat: Matrix) void;
+pub extern fn rlSetUniformMatrices(locIndex: c_int, mat: [*c]const Matrix, count: c_int) void;
 pub extern fn rlSetUniformSampler(locIndex: c_int, textureId: c_uint) void;
 pub extern fn rlSetShader(id: c_uint, locs: [*c]c_int) void;
-pub extern fn rlLoadComputeShaderProgram(shaderId: c_uint) c_uint;
 pub extern fn rlComputeShaderDispatch(groupX: c_uint, groupY: c_uint, groupZ: c_uint) void;
 pub extern fn rlLoadShaderBuffer(size: c_uint, data: ?*const anyopaque, usageHint: c_int) c_uint;
 pub extern fn rlUnloadShaderBuffer(ssboId: c_uint) void;
