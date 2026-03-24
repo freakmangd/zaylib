@@ -14,6 +14,8 @@ pub fn build(b: *std.Build) void {
 
     const defaults: raylib.Options = .{};
     const rd = b.dependency("raylib", .{
+        .target = target,
+        .optimize = optimize,
         .platform = b.option(raylib.PlatformBackend, "platform", "Choose the platform backend for desktop target") orelse defaults.platform,
         .raudio = b.option(bool, "raudio", "Compile with audio support") orelse defaults.raudio,
         .rmodels = b.option(bool, "rmodels", "Compile with models support") orelse defaults.rmodels,
