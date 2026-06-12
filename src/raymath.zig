@@ -1204,9 +1204,7 @@ pub fn Vector3ToFloatV(arg_v: Vector3) float3 {
     var v = arg_v;
     _ = &v;
     var buffer: float3 = float3{
-        .v = [1]f32{
-            0,
-        } ++ [1]f32{0} ** 2,
+        .v = .{ 0, 0, 0 },
     };
     _ = &buffer;
     buffer.v[@as(c_uint, @intCast(@as(c_int, 0)))] = v.x;
@@ -2504,9 +2502,7 @@ pub fn MatrixToFloatV(arg_mat: Matrix) float16 {
     var mat = arg_mat;
     _ = &mat;
     var result: float16 = float16{
-        .v = [1]f32{
-            0,
-        } ++ [1]f32{0} ** 15,
+        .v = @splat(0),
     };
     _ = &result;
     result.v[@as(c_uint, @intCast(@as(c_int, 0)))] = mat.m0;

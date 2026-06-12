@@ -1,6 +1,8 @@
 const std = @import("std");
 const raylib = @import("raylib");
+
 pub const raylib_build = raylib;
+pub const emsdk = raylib.emsdk;
 
 pub fn build(b: *std.Build) void {
     const target = b.standardTargetOptions(.{});
@@ -29,23 +31,37 @@ pub fn build(b: *std.Build) void {
         .android_ndk = b.option([]const u8, "android_ndk", "specify path to android ndk") orelse b.graph.environ_map.get("ANDROID_NDK_HOME") orelse "",
         .android_api_version = b.option([]const u8, "android_api_version", "specify target android API level") orelse defaults.android_api_version,
     });
-    b.installArtifact(rd.artifact("raylib"));
+    const raylib_artifact = rd.artifact("raylib");
+    b.installArtifact(raylib_artifact);
+
+    const emsdk_dep = rd.builder.dependency("emsdk", .{});
+
+    const include_file_content = b.fmt(
+        \\#include "raylib.h"
+        \\#include "raymath.h"
+        \\#include "rlgl.h"
+        \\{s}
+    , .{
+        if (target.result.os.tag == .emscripten) "#include \"emscripten/emscripten.h\"" else "",
+    });
 
     const raylib_tc = b.addTranslateC(.{
-        .root_source_file = b.addWriteFile("include.h",
-            \\#include "raylib.h"
-            \\#include "raymath.h"
-            \\#include "rlgl.h"
-        ).getDirectory().path(b, "include.h"),
+        .root_source_file = b.addWriteFile("include.h", include_file_content).getDirectory().path(b, "include.h"),
         .optimize = optimize,
         .target = target,
     });
+    raylib_tc.addIncludePath(emsdk_dep.path("upstream/emscripten/cache/sysroot/include/"));
     raylib_tc.addIncludePath(rd.path("src"));
-    mod.addImport("c", raylib_tc.createModule());
+
+    const raylib_tc_mod = raylib_tc.createModule();
+    mod.addImport("c", raylib_tc_mod);
 
     mod.addIncludePath(rd.path("src"));
-    mod.linkLibrary(rd.artifact("raylib"));
     b.addNamedLazyPath("raylib-root", rd.path("."));
+
+    if (!(b.option(bool, "manual_link", "Do not link the raylib artifact") orelse false)) {
+        mod.linkLibrary(raylib_artifact);
+    }
 
     const test_options = b.addOptions();
     test_options.addOption(bool, "check_raylib_decls", b.option(bool, "check_raylib_decls", "Compile error if we are missing some raylib decls") orelse false);

@@ -25,7 +25,7 @@ pub fn init(pos: rl.Vector2, font_size: c_int, tint: rl.Color, options: struct {
         .font = options.font orelse .getDefault(),
         .spacing = options.spacing orelse @floatFromInt(@divFloor(@max(font_size, default_font_size), default_font_size)),
         .interface = .{
-            .buffer = &.{}, // no reason to buffer this, right?
+            .buffer = &.{}, // no reason to buffer this, and we don't handle it in drain
             .vtable = &.{ .drain = drain },
         },
     };
@@ -36,10 +36,13 @@ pub fn reset(self: *DrawTextWriter) void {
 }
 
 pub fn print(self: *DrawTextWriter, comptime fmt: []const u8, args: anytype) void {
-    self.interface.print(fmt, args) catch unreachable; // DrawTextWriter's drain cannot return an error
+    comptime {
+        std.debug.assert(@typeInfo(@typeInfo(@TypeOf(DrawTextWriter.drain)).@"fn".return_type.?) != .error_union);
+    }
+    self.interface.print(fmt, args) catch unreachable;
 }
 
-fn drain(writer: *std.Io.Writer, data: []const []const u8, _: usize) std.Io.Writer.Error!usize {
+pub fn drain(writer: *std.Io.Writer, data: []const []const u8, _: usize) (error{})!usize {
     const self: *DrawTextWriter = @alignCast(@fieldParentPtr("interface", writer));
 
     var written: usize = 0;
