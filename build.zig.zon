@@ -4,9 +4,8 @@
     .fingerprint = 0xff50dc31e5b12337,
     .dependencies = .{
         .raylib = .{
-            .path = "../../c/raylib",
-            //.url = "git+https://github.com/raysan5/raylib#87ce282eeedf292b79a7542b5ed42ed639b09e35",
-            //.hash = "raylib-6.0.0-whq8uJwHNAUVoNHEQeuthAlZxkkDng9wFpheCC6qtz09",
+            .url = "git+https://github.com/raysan5/raylib#87ce282eeedf292b79a7542b5ed42ed639b09e35",
+            .hash = "raylib-6.0.0-whq8uJwHNAUVoNHEQeuthAlZxkkDng9wFpheCC6qtz09",
         },
     },
     .paths = .{
