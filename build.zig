@@ -59,7 +59,7 @@ pub fn build(b: *std.Build) void {
     mod.addIncludePath(rd.path("src"));
     b.addNamedLazyPath("raylib-root", rd.path("."));
 
-    if (!(b.option(bool, "manual_link", "Do not link the raylib artifact") orelse false)) {
+    if (b.option(bool, "link_library", "Do not link the raylib artifact") orelse true) {
         mod.linkLibrary(raylib_artifact);
     }
 

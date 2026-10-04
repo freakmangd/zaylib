@@ -1,11 +1,39 @@
 const root = @import("init.zig");
+const c_decls = @import("c");
 const Vector2 = root.Vector2;
 const Vector3 = root.Vector3;
 const Vector4 = root.Vector4;
 const Quaternion = root.Quaternion;
 const Matrix = root.Matrix;
 
-pub fn Clamp(arg_value: f32, arg_min: f32, arg_max: f32) f32 {
+pub const EPSILON = @as(f32, 0.000001);
+
+pub const float3 = c_decls.struct_float3;
+pub const float16 = c_decls.struct_float16;
+
+pub extern fn floorf(__x: f32) f32;
+pub extern fn fabsf(__x: f32) f32;
+pub extern fn fmaxf(__x: f32, __y: f32) f32;
+pub extern fn atan2f(__y: f32, __x: f32) f32;
+pub extern fn fminf(__x: f32, __y: f32) f32;
+pub extern fn cosf(__x: f32) f32;
+pub extern fn sinf(__x: f32) f32;
+pub extern fn tanf(__x: f32) f32;
+pub extern fn sqrtf(__x: f32) f32;
+pub extern fn tan(__x: f64) f64;
+pub extern fn acosf(__x: f32) f32;
+pub extern fn asinf(__x: f32) f32;
+
+pub inline fn MatrixToFloat(mat: anytype) @TypeOf(MatrixToFloatV(mat).v) {
+    _ = &mat;
+    return MatrixToFloatV(mat).v;
+}
+pub inline fn Vector3ToFloat(vec: anytype) @TypeOf(Vector3ToFloatV(vec).v) {
+    _ = &vec;
+    return Vector3ToFloatV(vec).v;
+}
+
+pub fn Clamp(arg_value: f32, arg_min: f32, arg_max: f32) callconv(.c) f32 {
     var value = arg_value;
     _ = &value;
     var min = arg_min;
@@ -19,7 +47,7 @@ pub fn Clamp(arg_value: f32, arg_min: f32, arg_max: f32) f32 {
     }
     return result;
 }
-pub fn Lerp(arg_start: f32, arg_end: f32, arg_amount: f32) f32 {
+pub fn Lerp(arg_start: f32, arg_end: f32, arg_amount: f32) callconv(.c) f32 {
     var start = arg_start;
     _ = &start;
     var end = arg_end;
@@ -30,7 +58,7 @@ pub fn Lerp(arg_start: f32, arg_end: f32, arg_amount: f32) f32 {
     _ = &result;
     return result;
 }
-pub fn Normalize(arg_value: f32, arg_start: f32, arg_end: f32) f32 {
+pub fn Normalize(arg_value: f32, arg_start: f32, arg_end: f32) callconv(.c) f32 {
     var value = arg_value;
     _ = &value;
     var start = arg_start;
@@ -41,7 +69,7 @@ pub fn Normalize(arg_value: f32, arg_start: f32, arg_end: f32) f32 {
     _ = &result;
     return result;
 }
-pub fn Remap(arg_value: f32, arg_inputStart: f32, arg_inputEnd: f32, arg_outputStart: f32, arg_outputEnd: f32) f32 {
+pub fn Remap(arg_value: f32, arg_inputStart: f32, arg_inputEnd: f32, arg_outputStart: f32, arg_outputEnd: f32) callconv(.c) f32 {
     var value = arg_value;
     _ = &value;
     var inputStart = arg_inputStart;
@@ -56,7 +84,7 @@ pub fn Remap(arg_value: f32, arg_inputStart: f32, arg_inputEnd: f32, arg_outputS
     _ = &result;
     return result;
 }
-pub fn Wrap(arg_value: f32, arg_min: f32, arg_max: f32) f32 {
+pub fn Wrap(arg_value: f32, arg_min: f32, arg_max: f32) callconv(.c) f32 {
     var value = arg_value;
     _ = &value;
     var min = arg_min;
@@ -67,16 +95,16 @@ pub fn Wrap(arg_value: f32, arg_min: f32, arg_max: f32) f32 {
     _ = &result;
     return result;
 }
-pub fn FloatEquals(arg_x: f32, arg_y: f32) c_int {
+pub fn FloatEquals(arg_x: f32, arg_y: f32) callconv(.c) c_int {
     var x = arg_x;
     _ = &x;
     var y = arg_y;
     _ = &y;
-    var result: c_int = @intFromBool(fabsf(x - y) <= (0.0000009999999974752427 * fmaxf(1.0, fmaxf(fabsf(x), fabsf(y)))));
+    var result: c_int = @intFromBool(fabsf(x - y) <= (EPSILON * fmaxf(1.0, fmaxf(fabsf(x), fabsf(y)))));
     _ = &result;
     return result;
 }
-pub fn Vector2Zero() Vector2 {
+pub fn Vector2Zero() callconv(.c) Vector2 {
     var result: Vector2 = Vector2{
         .x = 0.0,
         .y = 0.0,
@@ -84,7 +112,7 @@ pub fn Vector2Zero() Vector2 {
     _ = &result;
     return result;
 }
-pub fn Vector2One() Vector2 {
+pub fn Vector2One() callconv(.c) Vector2 {
     var result: Vector2 = Vector2{
         .x = 1.0,
         .y = 1.0,
@@ -92,7 +120,7 @@ pub fn Vector2One() Vector2 {
     _ = &result;
     return result;
 }
-pub fn Vector2Add(arg_v1: Vector2, arg_v2: Vector2) Vector2 {
+pub fn Vector2Add(arg_v1: Vector2, arg_v2: Vector2) callconv(.c) Vector2 {
     var v1 = arg_v1;
     _ = &v1;
     var v2 = arg_v2;
@@ -104,7 +132,7 @@ pub fn Vector2Add(arg_v1: Vector2, arg_v2: Vector2) Vector2 {
     _ = &result;
     return result;
 }
-pub fn Vector2AddValue(arg_v: Vector2, arg_add: f32) Vector2 {
+pub fn Vector2AddValue(arg_v: Vector2, arg_add: f32) callconv(.c) Vector2 {
     var v = arg_v;
     _ = &v;
     var add = arg_add;
@@ -116,7 +144,7 @@ pub fn Vector2AddValue(arg_v: Vector2, arg_add: f32) Vector2 {
     _ = &result;
     return result;
 }
-pub fn Vector2Subtract(arg_v1: Vector2, arg_v2: Vector2) Vector2 {
+pub fn Vector2Subtract(arg_v1: Vector2, arg_v2: Vector2) callconv(.c) Vector2 {
     var v1 = arg_v1;
     _ = &v1;
     var v2 = arg_v2;
@@ -128,7 +156,7 @@ pub fn Vector2Subtract(arg_v1: Vector2, arg_v2: Vector2) Vector2 {
     _ = &result;
     return result;
 }
-pub fn Vector2SubtractValue(arg_v: Vector2, arg_sub: f32) Vector2 {
+pub fn Vector2SubtractValue(arg_v: Vector2, arg_sub: f32) callconv(.c) Vector2 {
     var v = arg_v;
     _ = &v;
     var sub = arg_sub;
@@ -140,21 +168,21 @@ pub fn Vector2SubtractValue(arg_v: Vector2, arg_sub: f32) Vector2 {
     _ = &result;
     return result;
 }
-pub fn Vector2Length(arg_v: Vector2) f32 {
+pub fn Vector2Length(arg_v: Vector2) callconv(.c) f32 {
     var v = arg_v;
     _ = &v;
-    var result: f32 = @sqrt((v.x * v.x) + (v.y * v.y));
+    var result: f32 = sqrtf((v.x * v.x) + (v.y * v.y));
     _ = &result;
     return result;
 }
-pub fn Vector2LengthSqr(arg_v: Vector2) f32 {
+pub fn Vector2LengthSqr(arg_v: Vector2) callconv(.c) f32 {
     var v = arg_v;
     _ = &v;
     var result: f32 = (v.x * v.x) + (v.y * v.y);
     _ = &result;
     return result;
 }
-pub fn Vector2DotProduct(arg_v1: Vector2, arg_v2: Vector2) f32 {
+pub fn Vector2DotProduct(arg_v1: Vector2, arg_v2: Vector2) callconv(.c) f32 {
     var v1 = arg_v1;
     _ = &v1;
     var v2 = arg_v2;
@@ -163,16 +191,25 @@ pub fn Vector2DotProduct(arg_v1: Vector2, arg_v2: Vector2) f32 {
     _ = &result;
     return result;
 }
-pub fn Vector2Distance(arg_v1: Vector2, arg_v2: Vector2) f32 {
+pub fn Vector2CrossProduct(arg_v1: Vector2, arg_v2: Vector2) callconv(.c) f32 {
     var v1 = arg_v1;
     _ = &v1;
     var v2 = arg_v2;
     _ = &v2;
-    var result: f32 = @sqrt(((v1.x - v2.x) * (v1.x - v2.x)) + ((v1.y - v2.y) * (v1.y - v2.y)));
+    var result: f32 = (v1.x * v2.y) - (v1.y * v2.x);
     _ = &result;
     return result;
 }
-pub fn Vector2DistanceSqr(arg_v1: Vector2, arg_v2: Vector2) f32 {
+pub fn Vector2Distance(arg_v1: Vector2, arg_v2: Vector2) callconv(.c) f32 {
+    var v1 = arg_v1;
+    _ = &v1;
+    var v2 = arg_v2;
+    _ = &v2;
+    var result: f32 = sqrtf(((v1.x - v2.x) * (v1.x - v2.x)) + ((v1.y - v2.y) * (v1.y - v2.y)));
+    _ = &result;
+    return result;
+}
+pub fn Vector2DistanceSqr(arg_v1: Vector2, arg_v2: Vector2) callconv(.c) f32 {
     var v1 = arg_v1;
     _ = &v1;
     var v2 = arg_v2;
@@ -181,7 +218,7 @@ pub fn Vector2DistanceSqr(arg_v1: Vector2, arg_v2: Vector2) f32 {
     _ = &result;
     return result;
 }
-pub fn Vector2Angle(arg_v1: Vector2, arg_v2: Vector2) f32 {
+pub fn Vector2Angle(arg_v1: Vector2, arg_v2: Vector2) callconv(.c) f32 {
     var v1 = arg_v1;
     _ = &v1;
     var v2 = arg_v2;
@@ -195,7 +232,7 @@ pub fn Vector2Angle(arg_v1: Vector2, arg_v2: Vector2) f32 {
     result = atan2f(det, dot);
     return result;
 }
-pub fn Vector2LineAngle(arg_start: Vector2, arg_end: Vector2) f32 {
+pub fn Vector2LineAngle(arg_start: Vector2, arg_end: Vector2) callconv(.c) f32 {
     var start = arg_start;
     _ = &start;
     var end = arg_end;
@@ -205,7 +242,7 @@ pub fn Vector2LineAngle(arg_start: Vector2, arg_end: Vector2) f32 {
     result = -atan2f(end.y - start.y, end.x - start.x);
     return result;
 }
-pub fn Vector2Scale(arg_v: Vector2, arg_scale: f32) Vector2 {
+pub fn Vector2Scale(arg_v: Vector2, arg_scale: f32) callconv(.c) Vector2 {
     var v = arg_v;
     _ = &v;
     var scale = arg_scale;
@@ -217,7 +254,7 @@ pub fn Vector2Scale(arg_v: Vector2, arg_scale: f32) Vector2 {
     _ = &result;
     return result;
 }
-pub fn Vector2Multiply(arg_v1: Vector2, arg_v2: Vector2) Vector2 {
+pub fn Vector2Multiply(arg_v1: Vector2, arg_v2: Vector2) callconv(.c) Vector2 {
     var v1 = arg_v1;
     _ = &v1;
     var v2 = arg_v2;
@@ -229,7 +266,7 @@ pub fn Vector2Multiply(arg_v1: Vector2, arg_v2: Vector2) Vector2 {
     _ = &result;
     return result;
 }
-pub fn Vector2Negate(arg_v: Vector2) Vector2 {
+pub fn Vector2Negate(arg_v: Vector2) callconv(.c) Vector2 {
     var v = arg_v;
     _ = &v;
     var result: Vector2 = Vector2{
@@ -239,7 +276,7 @@ pub fn Vector2Negate(arg_v: Vector2) Vector2 {
     _ = &result;
     return result;
 }
-pub fn Vector2Divide(arg_v1: Vector2, arg_v2: Vector2) Vector2 {
+pub fn Vector2Divide(arg_v1: Vector2, arg_v2: Vector2) callconv(.c) Vector2 {
     var v1 = arg_v1;
     _ = &v1;
     var v2 = arg_v2;
@@ -251,31 +288,31 @@ pub fn Vector2Divide(arg_v1: Vector2, arg_v2: Vector2) Vector2 {
     _ = &result;
     return result;
 }
-pub fn Vector2Normalize(arg_v: Vector2) Vector2 {
+pub fn Vector2Normalize(arg_v: Vector2) callconv(.c) Vector2 {
     var v = arg_v;
     _ = &v;
     var result: Vector2 = Vector2{
-        .x = @as(f32, @floatFromInt(@as(c_int, 0))),
+        .x = @floatFromInt(@as(c_int, 0)),
         .y = 0,
     };
     _ = &result;
-    var length: f32 = @sqrt((v.x * v.x) + (v.y * v.y));
+    var length: f32 = sqrtf((v.x * v.x) + (v.y * v.y));
     _ = &length;
     if (length > @as(f32, @floatFromInt(@as(c_int, 0)))) {
-        var ilength: f32 = 1.0 / length;
+        var ilength: f32 = @as(f32, 1.0) / length;
         _ = &ilength;
         result.x = v.x * ilength;
         result.y = v.y * ilength;
     }
     return result;
 }
-pub fn Vector2Transform(arg_v: Vector2, arg_mat: Matrix) Vector2 {
+pub fn Vector2Transform(arg_v: Vector2, arg_mat: Matrix) callconv(.c) Vector2 {
     var v = arg_v;
     _ = &v;
     var mat = arg_mat;
     _ = &mat;
     var result: Vector2 = Vector2{
-        .x = @as(f32, @floatFromInt(@as(c_int, 0))),
+        .x = @floatFromInt(@as(c_int, 0)),
         .y = 0,
     };
     _ = &result;
@@ -283,13 +320,13 @@ pub fn Vector2Transform(arg_v: Vector2, arg_mat: Matrix) Vector2 {
     _ = &x;
     var y: f32 = v.y;
     _ = &y;
-    var z: f32 = 0;
+    var z: f32 = @floatFromInt(@as(c_int, 0));
     _ = &z;
     result.x = (((mat.m0 * x) + (mat.m4 * y)) + (mat.m8 * z)) + mat.m12;
     result.y = (((mat.m1 * x) + (mat.m5 * y)) + (mat.m9 * z)) + mat.m13;
     return result;
 }
-pub fn Vector2Lerp(arg_v1: Vector2, arg_v2: Vector2, arg_amount: f32) Vector2 {
+pub fn Vector2Lerp(arg_v1: Vector2, arg_v2: Vector2, arg_amount: f32) callconv(.c) Vector2 {
     var v1 = arg_v1;
     _ = &v1;
     var v2 = arg_v2;
@@ -297,7 +334,7 @@ pub fn Vector2Lerp(arg_v1: Vector2, arg_v2: Vector2, arg_amount: f32) Vector2 {
     var amount = arg_amount;
     _ = &amount;
     var result: Vector2 = Vector2{
-        .x = @as(f32, @floatFromInt(@as(c_int, 0))),
+        .x = @floatFromInt(@as(c_int, 0)),
         .y = 0,
     };
     _ = &result;
@@ -305,29 +342,29 @@ pub fn Vector2Lerp(arg_v1: Vector2, arg_v2: Vector2, arg_amount: f32) Vector2 {
     result.y = v1.y + (amount * (v2.y - v1.y));
     return result;
 }
-pub fn Vector2Reflect(arg_v: Vector2, arg_normal: Vector2) Vector2 {
+pub fn Vector2Reflect(arg_v: Vector2, arg_normal: Vector2) callconv(.c) Vector2 {
     var v = arg_v;
     _ = &v;
     var normal = arg_normal;
     _ = &normal;
     var result: Vector2 = Vector2{
-        .x = @as(f32, @floatFromInt(@as(c_int, 0))),
+        .x = @floatFromInt(@as(c_int, 0)),
         .y = 0,
     };
     _ = &result;
     var dotProduct: f32 = (v.x * normal.x) + (v.y * normal.y);
     _ = &dotProduct;
-    result.x = v.x - ((2.0 * normal.x) * dotProduct);
-    result.y = v.y - ((2.0 * normal.y) * dotProduct);
+    result.x = v.x - ((@as(f32, 2.0) * normal.x) * dotProduct);
+    result.y = v.y - ((@as(f32, 2.0) * normal.y) * dotProduct);
     return result;
 }
-pub fn Vector2Min(arg_v1: Vector2, arg_v2: Vector2) Vector2 {
+pub fn Vector2Min(arg_v1: Vector2, arg_v2: Vector2) callconv(.c) Vector2 {
     var v1 = arg_v1;
     _ = &v1;
     var v2 = arg_v2;
     _ = &v2;
     var result: Vector2 = Vector2{
-        .x = @as(f32, @floatFromInt(@as(c_int, 0))),
+        .x = @floatFromInt(@as(c_int, 0)),
         .y = 0,
     };
     _ = &result;
@@ -335,13 +372,13 @@ pub fn Vector2Min(arg_v1: Vector2, arg_v2: Vector2) Vector2 {
     result.y = fminf(v1.y, v2.y);
     return result;
 }
-pub fn Vector2Max(arg_v1: Vector2, arg_v2: Vector2) Vector2 {
+pub fn Vector2Max(arg_v1: Vector2, arg_v2: Vector2) callconv(.c) Vector2 {
     var v1 = arg_v1;
     _ = &v1;
     var v2 = arg_v2;
     _ = &v2;
     var result: Vector2 = Vector2{
-        .x = @as(f32, @floatFromInt(@as(c_int, 0))),
+        .x = @floatFromInt(@as(c_int, 0)),
         .y = 0,
     };
     _ = &result;
@@ -349,13 +386,13 @@ pub fn Vector2Max(arg_v1: Vector2, arg_v2: Vector2) Vector2 {
     result.y = fmaxf(v1.y, v2.y);
     return result;
 }
-pub fn Vector2Rotate(arg_v: Vector2, arg_angle: f32) Vector2 {
+pub fn Vector2Rotate(arg_v: Vector2, arg_angle: f32) callconv(.c) Vector2 {
     var v = arg_v;
     _ = &v;
     var angle = arg_angle;
     _ = &angle;
     var result: Vector2 = Vector2{
-        .x = @as(f32, @floatFromInt(@as(c_int, 0))),
+        .x = @floatFromInt(@as(c_int, 0)),
         .y = 0,
     };
     _ = &result;
@@ -367,7 +404,7 @@ pub fn Vector2Rotate(arg_v: Vector2, arg_angle: f32) Vector2 {
     result.y = (v.x * sinres) + (v.y * cosres);
     return result;
 }
-pub fn Vector2MoveTowards(arg_v: Vector2, arg_target: Vector2, arg_maxDistance: f32) Vector2 {
+pub fn Vector2MoveTowards(arg_v: Vector2, arg_target: Vector2, arg_maxDistance: f32) callconv(.c) Vector2 {
     var v = arg_v;
     _ = &v;
     var target = arg_target;
@@ -375,7 +412,7 @@ pub fn Vector2MoveTowards(arg_v: Vector2, arg_target: Vector2, arg_maxDistance: 
     var maxDistance = arg_maxDistance;
     _ = &maxDistance;
     var result: Vector2 = Vector2{
-        .x = @as(f32, @floatFromInt(@as(c_int, 0))),
+        .x = @floatFromInt(@as(c_int, 0)),
         .y = 0,
     };
     _ = &result;
@@ -392,17 +429,17 @@ pub fn Vector2MoveTowards(arg_v: Vector2, arg_target: Vector2, arg_maxDistance: 
     result.y = v.y + ((dy / dist) * maxDistance);
     return result;
 }
-pub fn Vector2Invert(arg_v: Vector2) Vector2 {
+pub fn Vector2Invert(arg_v: Vector2) callconv(.c) Vector2 {
     var v = arg_v;
     _ = &v;
     var result: Vector2 = Vector2{
-        .x = 1.0 / v.x,
-        .y = 1.0 / v.y,
+        .x = @as(f32, 1.0) / v.x,
+        .y = @as(f32, 1.0) / v.y,
     };
     _ = &result;
     return result;
 }
-pub fn Vector2Clamp(arg_v: Vector2, arg_min: Vector2, arg_max: Vector2) Vector2 {
+pub fn Vector2Clamp(arg_v: Vector2, arg_min: Vector2, arg_max: Vector2) callconv(.c) Vector2 {
     var v = arg_v;
     _ = &v;
     var min = arg_min;
@@ -410,7 +447,7 @@ pub fn Vector2Clamp(arg_v: Vector2, arg_min: Vector2, arg_max: Vector2) Vector2 
     var max = arg_max;
     _ = &max;
     var result: Vector2 = Vector2{
-        .x = @as(f32, @floatFromInt(@as(c_int, 0))),
+        .x = @floatFromInt(@as(c_int, 0)),
         .y = 0,
     };
     _ = &result;
@@ -418,7 +455,7 @@ pub fn Vector2Clamp(arg_v: Vector2, arg_min: Vector2, arg_max: Vector2) Vector2 
     result.y = fminf(max.y, fmaxf(min.y, v.y));
     return result;
 }
-pub fn Vector2ClampValue(arg_v: Vector2, arg_min: f32, arg_max: f32) Vector2 {
+pub fn Vector2ClampValue(arg_v: Vector2, arg_min: f32, arg_max: f32) callconv(.c) Vector2 {
     var v = arg_v;
     _ = &v;
     var min = arg_min;
@@ -429,9 +466,9 @@ pub fn Vector2ClampValue(arg_v: Vector2, arg_min: f32, arg_max: f32) Vector2 {
     _ = &result;
     var length: f32 = (v.x * v.x) + (v.y * v.y);
     _ = &length;
-    if (length > 0.0) {
+    if (length > @as(f32, 0.0)) {
         length = sqrtf(length);
-        var scale: f32 = 1;
+        var scale: f32 = @floatFromInt(@as(c_int, 1));
         _ = &scale;
         if (length < min) {
             scale = min / length;
@@ -443,16 +480,16 @@ pub fn Vector2ClampValue(arg_v: Vector2, arg_min: f32, arg_max: f32) Vector2 {
     }
     return result;
 }
-pub fn Vector2Equals(arg_p: Vector2, arg_q: Vector2) c_int {
+pub fn Vector2Equals(arg_p: Vector2, arg_q: Vector2) callconv(.c) c_int {
     var p = arg_p;
     _ = &p;
     var q = arg_q;
     _ = &q;
-    var result: c_int = @intFromBool((fabsf(p.x - q.x) <= (0.0000009999999974752427 * fmaxf(1.0, fmaxf(fabsf(p.x), fabsf(q.x))))) and (fabsf(p.y - q.y) <= (0.0000009999999974752427 * fmaxf(1.0, fmaxf(fabsf(p.y), fabsf(q.y))))));
+    var result: c_int = @intFromBool((fabsf(p.x - q.x) <= (EPSILON * fmaxf(1.0, fmaxf(fabsf(p.x), fabsf(q.x))))) and (fabsf(p.y - q.y) <= (EPSILON * fmaxf(1.0, fmaxf(fabsf(p.y), fabsf(q.y))))));
     _ = &result;
     return result;
 }
-pub fn Vector2Refract(arg_v: Vector2, arg_n: Vector2, arg_r: f32) Vector2 {
+pub fn Vector2Refract(arg_v: Vector2, arg_n: Vector2, arg_r: f32) callconv(.c) Vector2 {
     var v = arg_v;
     _ = &v;
     var n = arg_n;
@@ -460,15 +497,15 @@ pub fn Vector2Refract(arg_v: Vector2, arg_n: Vector2, arg_r: f32) Vector2 {
     var r = arg_r;
     _ = &r;
     var result: Vector2 = Vector2{
-        .x = @as(f32, @floatFromInt(@as(c_int, 0))),
+        .x = @floatFromInt(@as(c_int, 0)),
         .y = 0,
     };
     _ = &result;
     var dot: f32 = (v.x * n.x) + (v.y * n.y);
     _ = &dot;
-    var d: f32 = 1.0 - ((r * r) * (1.0 - (dot * dot)));
+    var d: f32 = @as(f32, 1.0) - ((r * r) * (@as(f32, 1.0) - (dot * dot)));
     _ = &d;
-    if (d >= 0.0) {
+    if (d >= @as(f32, 0.0)) {
         d = sqrtf(d);
         v.x = (r * v.x) - (((r * dot) + d) * n.x);
         v.y = (r * v.y) - (((r * dot) + d) * n.y);
@@ -476,7 +513,7 @@ pub fn Vector2Refract(arg_v: Vector2, arg_n: Vector2, arg_r: f32) Vector2 {
     }
     return result;
 }
-pub fn Vector3Zero() Vector3 {
+pub fn Vector3Zero() callconv(.c) Vector3 {
     var result: Vector3 = Vector3{
         .x = 0.0,
         .y = 0.0,
@@ -485,7 +522,7 @@ pub fn Vector3Zero() Vector3 {
     _ = &result;
     return result;
 }
-pub fn Vector3One() Vector3 {
+pub fn Vector3One() callconv(.c) Vector3 {
     var result: Vector3 = Vector3{
         .x = 1.0,
         .y = 1.0,
@@ -494,7 +531,7 @@ pub fn Vector3One() Vector3 {
     _ = &result;
     return result;
 }
-pub fn Vector3Add(arg_v1: Vector3, arg_v2: Vector3) Vector3 {
+pub fn Vector3Add(arg_v1: Vector3, arg_v2: Vector3) callconv(.c) Vector3 {
     var v1 = arg_v1;
     _ = &v1;
     var v2 = arg_v2;
@@ -507,7 +544,7 @@ pub fn Vector3Add(arg_v1: Vector3, arg_v2: Vector3) Vector3 {
     _ = &result;
     return result;
 }
-pub fn Vector3AddValue(arg_v: Vector3, arg_add: f32) Vector3 {
+pub fn Vector3AddValue(arg_v: Vector3, arg_add: f32) callconv(.c) Vector3 {
     var v = arg_v;
     _ = &v;
     var add = arg_add;
@@ -520,7 +557,7 @@ pub fn Vector3AddValue(arg_v: Vector3, arg_add: f32) Vector3 {
     _ = &result;
     return result;
 }
-pub fn Vector3Subtract(arg_v1: Vector3, arg_v2: Vector3) Vector3 {
+pub fn Vector3Subtract(arg_v1: Vector3, arg_v2: Vector3) callconv(.c) Vector3 {
     var v1 = arg_v1;
     _ = &v1;
     var v2 = arg_v2;
@@ -533,7 +570,7 @@ pub fn Vector3Subtract(arg_v1: Vector3, arg_v2: Vector3) Vector3 {
     _ = &result;
     return result;
 }
-pub fn Vector3SubtractValue(arg_v: Vector3, arg_sub: f32) Vector3 {
+pub fn Vector3SubtractValue(arg_v: Vector3, arg_sub: f32) callconv(.c) Vector3 {
     var v = arg_v;
     _ = &v;
     var sub = arg_sub;
@@ -546,7 +583,7 @@ pub fn Vector3SubtractValue(arg_v: Vector3, arg_sub: f32) Vector3 {
     _ = &result;
     return result;
 }
-pub fn Vector3Scale(arg_v: Vector3, arg_scalar: f32) Vector3 {
+pub fn Vector3Scale(arg_v: Vector3, arg_scalar: f32) callconv(.c) Vector3 {
     var v = arg_v;
     _ = &v;
     var scalar = arg_scalar;
@@ -559,7 +596,7 @@ pub fn Vector3Scale(arg_v: Vector3, arg_scalar: f32) Vector3 {
     _ = &result;
     return result;
 }
-pub fn Vector3Multiply(arg_v1: Vector3, arg_v2: Vector3) Vector3 {
+pub fn Vector3Multiply(arg_v1: Vector3, arg_v2: Vector3) callconv(.c) Vector3 {
     var v1 = arg_v1;
     _ = &v1;
     var v2 = arg_v2;
@@ -572,7 +609,7 @@ pub fn Vector3Multiply(arg_v1: Vector3, arg_v2: Vector3) Vector3 {
     _ = &result;
     return result;
 }
-pub fn Vector3CrossProduct(arg_v1: Vector3, arg_v2: Vector3) Vector3 {
+pub fn Vector3CrossProduct(arg_v1: Vector3, arg_v2: Vector3) callconv(.c) Vector3 {
     var v1 = arg_v1;
     _ = &v1;
     var v2 = arg_v2;
@@ -585,11 +622,11 @@ pub fn Vector3CrossProduct(arg_v1: Vector3, arg_v2: Vector3) Vector3 {
     _ = &result;
     return result;
 }
-pub fn Vector3Perpendicular(arg_v: Vector3) Vector3 {
+pub fn Vector3Perpendicular(arg_v: Vector3) callconv(.c) Vector3 {
     var v = arg_v;
     _ = &v;
     var result: Vector3 = Vector3{
-        .x = @as(f32, @floatFromInt(@as(c_int, 0))),
+        .x = @floatFromInt(@as(c_int, 0)),
         .y = 0,
         .z = 0,
     };
@@ -626,19 +663,19 @@ pub fn Vector3Perpendicular(arg_v: Vector3) Vector3 {
     result.z = (v.x * cardinalAxis.y) - (v.y * cardinalAxis.x);
     return result;
 }
-pub fn Vector3Length(v: Vector3) f32 {
+pub fn Vector3Length(v: Vector3) callconv(.c) f32 {
     _ = &v;
     var result: f32 = sqrtf(((v.x * v.x) + (v.y * v.y)) + (v.z * v.z));
     _ = &result;
     return result;
 }
-pub fn Vector3LengthSqr(v: Vector3) f32 {
+pub fn Vector3LengthSqr(v: Vector3) callconv(.c) f32 {
     _ = &v;
     var result: f32 = ((v.x * v.x) + (v.y * v.y)) + (v.z * v.z);
     _ = &result;
     return result;
 }
-pub fn Vector3DotProduct(arg_v1: Vector3, arg_v2: Vector3) f32 {
+pub fn Vector3DotProduct(arg_v1: Vector3, arg_v2: Vector3) callconv(.c) f32 {
     var v1 = arg_v1;
     _ = &v1;
     var v2 = arg_v2;
@@ -647,7 +684,7 @@ pub fn Vector3DotProduct(arg_v1: Vector3, arg_v2: Vector3) f32 {
     _ = &result;
     return result;
 }
-pub fn Vector3Distance(arg_v1: Vector3, arg_v2: Vector3) f32 {
+pub fn Vector3Distance(arg_v1: Vector3, arg_v2: Vector3) callconv(.c) f32 {
     var v1 = arg_v1;
     _ = &v1;
     var v2 = arg_v2;
@@ -663,7 +700,7 @@ pub fn Vector3Distance(arg_v1: Vector3, arg_v2: Vector3) f32 {
     result = sqrtf(((dx * dx) + (dy * dy)) + (dz * dz));
     return result;
 }
-pub fn Vector3DistanceSqr(arg_v1: Vector3, arg_v2: Vector3) f32 {
+pub fn Vector3DistanceSqr(arg_v1: Vector3, arg_v2: Vector3) callconv(.c) f32 {
     var v1 = arg_v1;
     _ = &v1;
     var v2 = arg_v2;
@@ -679,7 +716,7 @@ pub fn Vector3DistanceSqr(arg_v1: Vector3, arg_v2: Vector3) f32 {
     result = ((dx * dx) + (dy * dy)) + (dz * dz);
     return result;
 }
-pub fn Vector3Angle(arg_v1: Vector3, arg_v2: Vector3) f32 {
+pub fn Vector3Angle(arg_v1: Vector3, arg_v2: Vector3) callconv(.c) f32 {
     var v1 = arg_v1;
     _ = &v1;
     var v2 = arg_v2;
@@ -699,7 +736,7 @@ pub fn Vector3Angle(arg_v1: Vector3, arg_v2: Vector3) f32 {
     result = atan2f(len, dot);
     return result;
 }
-pub fn Vector3Negate(arg_v: Vector3) Vector3 {
+pub fn Vector3Negate(arg_v: Vector3) callconv(.c) Vector3 {
     var v = arg_v;
     _ = &v;
     var result: Vector3 = Vector3{
@@ -710,7 +747,7 @@ pub fn Vector3Negate(arg_v: Vector3) Vector3 {
     _ = &result;
     return result;
 }
-pub fn Vector3Divide(arg_v1: Vector3, arg_v2: Vector3) Vector3 {
+pub fn Vector3Divide(arg_v1: Vector3, arg_v2: Vector3) callconv(.c) Vector3 {
     var v1 = arg_v1;
     _ = &v1;
     var v2 = arg_v2;
@@ -723,15 +760,15 @@ pub fn Vector3Divide(arg_v1: Vector3, arg_v2: Vector3) Vector3 {
     _ = &result;
     return result;
 }
-pub fn Vector3Normalize(arg_v: Vector3) Vector3 {
+pub fn Vector3Normalize(arg_v: Vector3) callconv(.c) Vector3 {
     var v = arg_v;
     _ = &v;
     var result: Vector3 = v;
     _ = &result;
     var length: f32 = sqrtf(((v.x * v.x) + (v.y * v.y)) + (v.z * v.z));
     _ = &length;
-    if (length != 0.0) {
-        var ilength: f32 = 1.0 / length;
+    if (length != @as(f32, 0.0)) {
+        var ilength: f32 = @as(f32, 1.0) / length;
         _ = &ilength;
         result.x *= ilength;
         result.y *= ilength;
@@ -739,13 +776,13 @@ pub fn Vector3Normalize(arg_v: Vector3) Vector3 {
     }
     return result;
 }
-pub fn Vector3Project(arg_v1: Vector3, arg_v2: Vector3) Vector3 {
+pub fn Vector3Project(arg_v1: Vector3, arg_v2: Vector3) callconv(.c) Vector3 {
     var v1 = arg_v1;
     _ = &v1;
     var v2 = arg_v2;
     _ = &v2;
     var result: Vector3 = Vector3{
-        .x = @as(f32, @floatFromInt(@as(c_int, 0))),
+        .x = @floatFromInt(@as(c_int, 0)),
         .y = 0,
         .z = 0,
     };
@@ -761,13 +798,13 @@ pub fn Vector3Project(arg_v1: Vector3, arg_v2: Vector3) Vector3 {
     result.z = v2.z * mag;
     return result;
 }
-pub fn Vector3Reject(arg_v1: Vector3, arg_v2: Vector3) Vector3 {
+pub fn Vector3Reject(arg_v1: Vector3, arg_v2: Vector3) callconv(.c) Vector3 {
     var v1 = arg_v1;
     _ = &v1;
     var v2 = arg_v2;
     _ = &v2;
     var result: Vector3 = Vector3{
-        .x = @as(f32, @floatFromInt(@as(c_int, 0))),
+        .x = @floatFromInt(@as(c_int, 0)),
         .y = 0,
         .z = 0,
     };
@@ -783,7 +820,7 @@ pub fn Vector3Reject(arg_v1: Vector3, arg_v2: Vector3) Vector3 {
     result.z = v1.z - (v2.z * mag);
     return result;
 }
-pub fn Vector3OrthoNormalize(arg_v1: [*c]Vector3, arg_v2: [*c]Vector3) void {
+pub fn Vector3OrthoNormalize(arg_v1: [*c]Vector3, arg_v2: [*c]Vector3) callconv(.c) void {
     var v1 = arg_v1;
     _ = &v1;
     var v2 = arg_v2;
@@ -795,10 +832,10 @@ pub fn Vector3OrthoNormalize(arg_v1: [*c]Vector3, arg_v2: [*c]Vector3) void {
     var v: Vector3 = v1.*;
     _ = &v;
     length = sqrtf(((v.x * v.x) + (v.y * v.y)) + (v.z * v.z));
-    if (length == 0.0) {
+    if (length == @as(f32, 0.0)) {
         length = 1.0;
     }
-    ilength = 1.0 / length;
+    ilength = @as(f32, 1.0) / length;
     v1.*.x *= ilength;
     v1.*.y *= ilength;
     v1.*.z *= ilength;
@@ -810,10 +847,10 @@ pub fn Vector3OrthoNormalize(arg_v1: [*c]Vector3, arg_v2: [*c]Vector3) void {
     _ = &vn1;
     v = vn1;
     length = sqrtf(((v.x * v.x) + (v.y * v.y)) + (v.z * v.z));
-    if (length == 0.0) {
+    if (length == @as(f32, 0.0)) {
         length = 1.0;
     }
-    ilength = 1.0 / length;
+    ilength = @as(f32, 1.0) / length;
     vn1.x *= ilength;
     vn1.y *= ilength;
     vn1.z *= ilength;
@@ -825,13 +862,13 @@ pub fn Vector3OrthoNormalize(arg_v1: [*c]Vector3, arg_v2: [*c]Vector3) void {
     _ = &vn2;
     v2.* = vn2;
 }
-pub fn Vector3Transform(arg_v: Vector3, arg_mat: Matrix) Vector3 {
+pub fn Vector3Transform(arg_v: Vector3, arg_mat: Matrix) callconv(.c) Vector3 {
     var v = arg_v;
     _ = &v;
     var mat = arg_mat;
     _ = &mat;
     var result: Vector3 = Vector3{
-        .x = @as(f32, @floatFromInt(@as(c_int, 0))),
+        .x = @floatFromInt(@as(c_int, 0)),
         .y = 0,
         .z = 0,
     };
@@ -847,13 +884,13 @@ pub fn Vector3Transform(arg_v: Vector3, arg_mat: Matrix) Vector3 {
     result.z = (((mat.m2 * x) + (mat.m6 * y)) + (mat.m10 * z)) + mat.m14;
     return result;
 }
-pub fn Vector3RotateByQuaternion(arg_v: Vector3, arg_q: Quaternion) Vector3 {
+pub fn Vector3RotateByQuaternion(arg_v: Vector3, arg_q: Quaternion) callconv(.c) Vector3 {
     var v = arg_v;
     _ = &v;
     var q = arg_q;
     _ = &q;
     var result: Vector3 = Vector3{
-        .x = @as(f32, @floatFromInt(@as(c_int, 0))),
+        .x = @floatFromInt(@as(c_int, 0)),
         .y = 0,
         .z = 0,
     };
@@ -863,7 +900,7 @@ pub fn Vector3RotateByQuaternion(arg_v: Vector3, arg_q: Quaternion) Vector3 {
     result.z = ((v.x * (((@as(f32, @floatFromInt(-@as(c_int, 2))) * q.w) * q.y) + ((@as(f32, @floatFromInt(@as(c_int, 2))) * q.x) * q.z))) + (v.y * (((@as(f32, @floatFromInt(@as(c_int, 2))) * q.w) * q.x) + ((@as(f32, @floatFromInt(@as(c_int, 2))) * q.y) * q.z)))) + (v.z * ((((q.w * q.w) - (q.x * q.x)) - (q.y * q.y)) + (q.z * q.z)));
     return result;
 }
-pub fn Vector3RotateByAxisAngle(arg_v: Vector3, arg_axis: Vector3, arg_angle: f32) Vector3 {
+pub fn Vector3RotateByAxisAngle(arg_v: Vector3, arg_axis: Vector3, arg_angle: f32) callconv(.c) Vector3 {
     var v = arg_v;
     _ = &v;
     var axis = arg_axis;
@@ -874,10 +911,10 @@ pub fn Vector3RotateByAxisAngle(arg_v: Vector3, arg_axis: Vector3, arg_angle: f3
     _ = &result;
     var length: f32 = sqrtf(((axis.x * axis.x) + (axis.y * axis.y)) + (axis.z * axis.z));
     _ = &length;
-    if (length == 0.0) {
+    if (length == @as(f32, 0.0)) {
         length = 1.0;
     }
-    var ilength: f32 = 1.0 / length;
+    var ilength: f32 = @as(f32, 1.0) / length;
     _ = &ilength;
     axis.x *= ilength;
     axis.y *= ilength;
@@ -910,13 +947,13 @@ pub fn Vector3RotateByAxisAngle(arg_v: Vector3, arg_axis: Vector3, arg_angle: f3
         .z = (w.x * wv.y) - (w.y * wv.x),
     };
     _ = &wwv;
-    a *= @as(f32, @floatFromInt(@as(c_int, 2)));
+    a *= @floatFromInt(@as(c_int, 2));
     wv.x *= a;
     wv.y *= a;
     wv.z *= a;
-    wwv.x *= @as(f32, @floatFromInt(@as(c_int, 2)));
-    wwv.y *= @as(f32, @floatFromInt(@as(c_int, 2)));
-    wwv.z *= @as(f32, @floatFromInt(@as(c_int, 2)));
+    wwv.x *= @floatFromInt(@as(c_int, 2));
+    wwv.y *= @floatFromInt(@as(c_int, 2));
+    wwv.z *= @floatFromInt(@as(c_int, 2));
     result.x += wv.x;
     result.y += wv.y;
     result.z += wv.z;
@@ -925,7 +962,7 @@ pub fn Vector3RotateByAxisAngle(arg_v: Vector3, arg_axis: Vector3, arg_angle: f3
     result.z += wwv.z;
     return result;
 }
-pub fn Vector3MoveTowards(arg_v: Vector3, arg_target: Vector3, arg_maxDistance: f32) Vector3 {
+pub fn Vector3MoveTowards(arg_v: Vector3, arg_target: Vector3, arg_maxDistance: f32) callconv(.c) Vector3 {
     var v = arg_v;
     _ = &v;
     var target = arg_target;
@@ -933,7 +970,7 @@ pub fn Vector3MoveTowards(arg_v: Vector3, arg_target: Vector3, arg_maxDistance: 
     var maxDistance = arg_maxDistance;
     _ = &maxDistance;
     var result: Vector3 = Vector3{
-        .x = @as(f32, @floatFromInt(@as(c_int, 0))),
+        .x = @floatFromInt(@as(c_int, 0)),
         .y = 0,
         .z = 0,
     };
@@ -954,7 +991,7 @@ pub fn Vector3MoveTowards(arg_v: Vector3, arg_target: Vector3, arg_maxDistance: 
     result.z = v.z + ((dz / dist) * maxDistance);
     return result;
 }
-pub fn Vector3Lerp(arg_v1: Vector3, arg_v2: Vector3, arg_amount: f32) Vector3 {
+pub fn Vector3Lerp(arg_v1: Vector3, arg_v2: Vector3, arg_amount: f32) callconv(.c) Vector3 {
     var v1 = arg_v1;
     _ = &v1;
     var v2 = arg_v2;
@@ -962,7 +999,7 @@ pub fn Vector3Lerp(arg_v1: Vector3, arg_v2: Vector3, arg_amount: f32) Vector3 {
     var amount = arg_amount;
     _ = &amount;
     var result: Vector3 = Vector3{
-        .x = @as(f32, @floatFromInt(@as(c_int, 0))),
+        .x = @floatFromInt(@as(c_int, 0)),
         .y = 0,
         .z = 0,
     };
@@ -972,31 +1009,57 @@ pub fn Vector3Lerp(arg_v1: Vector3, arg_v2: Vector3, arg_amount: f32) Vector3 {
     result.z = v1.z + (amount * (v2.z - v1.z));
     return result;
 }
-pub fn Vector3Reflect(arg_v: Vector3, arg_normal: Vector3) Vector3 {
+pub fn Vector3CubicHermite(arg_v1: Vector3, arg_tangent1: Vector3, arg_v2: Vector3, arg_tangent2: Vector3, arg_amount: f32) callconv(.c) Vector3 {
+    var v1 = arg_v1;
+    _ = &v1;
+    var tangent1 = arg_tangent1;
+    _ = &tangent1;
+    var v2 = arg_v2;
+    _ = &v2;
+    var tangent2 = arg_tangent2;
+    _ = &tangent2;
+    var amount = arg_amount;
+    _ = &amount;
+    var result: Vector3 = Vector3{
+        .x = @floatFromInt(@as(c_int, 0)),
+        .y = 0,
+        .z = 0,
+    };
+    _ = &result;
+    var amountPow2: f32 = amount * amount;
+    _ = &amountPow2;
+    var amountPow3: f32 = (amount * amount) * amount;
+    _ = &amountPow3;
+    result.x = ((((((@as(f32, @floatFromInt(@as(c_int, 2))) * amountPow3) - (@as(f32, @floatFromInt(@as(c_int, 3))) * amountPow2)) + @as(f32, @floatFromInt(@as(c_int, 1)))) * v1.x) + (((amountPow3 - (@as(f32, @floatFromInt(@as(c_int, 2))) * amountPow2)) + amount) * tangent1.x)) + (((@as(f32, @floatFromInt(-@as(c_int, 2))) * amountPow3) + (@as(f32, @floatFromInt(@as(c_int, 3))) * amountPow2)) * v2.x)) + ((amountPow3 - amountPow2) * tangent2.x);
+    result.y = ((((((@as(f32, @floatFromInt(@as(c_int, 2))) * amountPow3) - (@as(f32, @floatFromInt(@as(c_int, 3))) * amountPow2)) + @as(f32, @floatFromInt(@as(c_int, 1)))) * v1.y) + (((amountPow3 - (@as(f32, @floatFromInt(@as(c_int, 2))) * amountPow2)) + amount) * tangent1.y)) + (((@as(f32, @floatFromInt(-@as(c_int, 2))) * amountPow3) + (@as(f32, @floatFromInt(@as(c_int, 3))) * amountPow2)) * v2.y)) + ((amountPow3 - amountPow2) * tangent2.y);
+    result.z = ((((((@as(f32, @floatFromInt(@as(c_int, 2))) * amountPow3) - (@as(f32, @floatFromInt(@as(c_int, 3))) * amountPow2)) + @as(f32, @floatFromInt(@as(c_int, 1)))) * v1.z) + (((amountPow3 - (@as(f32, @floatFromInt(@as(c_int, 2))) * amountPow2)) + amount) * tangent1.z)) + (((@as(f32, @floatFromInt(-@as(c_int, 2))) * amountPow3) + (@as(f32, @floatFromInt(@as(c_int, 3))) * amountPow2)) * v2.z)) + ((amountPow3 - amountPow2) * tangent2.z);
+    return result;
+}
+pub fn Vector3Reflect(arg_v: Vector3, arg_normal: Vector3) callconv(.c) Vector3 {
     var v = arg_v;
     _ = &v;
     var normal = arg_normal;
     _ = &normal;
     var result: Vector3 = Vector3{
-        .x = @as(f32, @floatFromInt(@as(c_int, 0))),
+        .x = @floatFromInt(@as(c_int, 0)),
         .y = 0,
         .z = 0,
     };
     _ = &result;
     var dotProduct: f32 = ((v.x * normal.x) + (v.y * normal.y)) + (v.z * normal.z);
     _ = &dotProduct;
-    result.x = v.x - ((2.0 * normal.x) * dotProduct);
-    result.y = v.y - ((2.0 * normal.y) * dotProduct);
-    result.z = v.z - ((2.0 * normal.z) * dotProduct);
+    result.x = v.x - ((@as(f32, 2.0) * normal.x) * dotProduct);
+    result.y = v.y - ((@as(f32, 2.0) * normal.y) * dotProduct);
+    result.z = v.z - ((@as(f32, 2.0) * normal.z) * dotProduct);
     return result;
 }
-pub fn Vector3Min(arg_v1: Vector3, arg_v2: Vector3) Vector3 {
+pub fn Vector3Min(arg_v1: Vector3, arg_v2: Vector3) callconv(.c) Vector3 {
     var v1 = arg_v1;
     _ = &v1;
     var v2 = arg_v2;
     _ = &v2;
     var result: Vector3 = Vector3{
-        .x = @as(f32, @floatFromInt(@as(c_int, 0))),
+        .x = @floatFromInt(@as(c_int, 0)),
         .y = 0,
         .z = 0,
     };
@@ -1006,13 +1069,13 @@ pub fn Vector3Min(arg_v1: Vector3, arg_v2: Vector3) Vector3 {
     result.z = fminf(v1.z, v2.z);
     return result;
 }
-pub fn Vector3Max(arg_v1: Vector3, arg_v2: Vector3) Vector3 {
+pub fn Vector3Max(arg_v1: Vector3, arg_v2: Vector3) callconv(.c) Vector3 {
     var v1 = arg_v1;
     _ = &v1;
     var v2 = arg_v2;
     _ = &v2;
     var result: Vector3 = Vector3{
-        .x = @as(f32, @floatFromInt(@as(c_int, 0))),
+        .x = @floatFromInt(@as(c_int, 0)),
         .y = 0,
         .z = 0,
     };
@@ -1022,7 +1085,7 @@ pub fn Vector3Max(arg_v1: Vector3, arg_v2: Vector3) Vector3 {
     result.z = fmaxf(v1.z, v2.z);
     return result;
 }
-pub fn Vector3Barycenter(arg_p: Vector3, arg_a: Vector3, arg_b: Vector3, arg_c: Vector3) Vector3 {
+pub fn Vector3Barycenter(arg_p: Vector3, arg_a: Vector3, arg_b: Vector3, arg_c: Vector3) callconv(.c) Vector3 {
     var p = arg_p;
     _ = &p;
     var a = arg_a;
@@ -1032,7 +1095,7 @@ pub fn Vector3Barycenter(arg_p: Vector3, arg_a: Vector3, arg_b: Vector3, arg_c: 
     var c = arg_c;
     _ = &c;
     var result: Vector3 = Vector3{
-        .x = @as(f32, @floatFromInt(@as(c_int, 0))),
+        .x = @floatFromInt(@as(c_int, 0)),
         .y = 0,
         .z = 0,
     };
@@ -1069,10 +1132,10 @@ pub fn Vector3Barycenter(arg_p: Vector3, arg_a: Vector3, arg_b: Vector3, arg_c: 
     _ = &denom;
     result.y = ((d11 * d20) - (d01 * d21)) / denom;
     result.z = ((d00 * d21) - (d01 * d20)) / denom;
-    result.x = 1.0 - (result.z + result.y);
+    result.x = @as(f32, 1.0) - (result.z + result.y);
     return result;
 }
-pub fn Vector3Unproject(arg_source: Vector3, arg_projection: Matrix, arg_view: Matrix) Vector3 {
+pub fn Vector3Unproject(arg_source: Vector3, arg_projection: Matrix, arg_view: Matrix) callconv(.c) Vector3 {
     var source = arg_source;
     _ = &source;
     var projection = arg_projection;
@@ -1080,7 +1143,7 @@ pub fn Vector3Unproject(arg_source: Vector3, arg_projection: Matrix, arg_view: M
     var view = arg_view;
     _ = &view;
     var result: Vector3 = Vector3{
-        .x = @as(f32, @floatFromInt(@as(c_int, 0))),
+        .x = @floatFromInt(@as(c_int, 0)),
         .y = 0,
         .z = 0,
     };
@@ -1160,7 +1223,7 @@ pub fn Vector3Unproject(arg_source: Vector3, arg_projection: Matrix, arg_view: M
     _ = &b10;
     var b11: f32 = (a22 * a33) - (a23 * a32);
     _ = &b11;
-    var invDet: f32 = 1.0 / ((((((b00 * b11) - (b01 * b10)) + (b02 * b09)) + (b03 * b08)) - (b04 * b07)) + (b05 * b06));
+    var invDet: f32 = @as(f32, 1.0) / ((((((b00 * b11) - (b01 * b10)) + (b02 * b09)) + (b03 * b08)) - (b04 * b07)) + (b05 * b06));
     _ = &invDet;
     var matViewProjInv: Matrix = Matrix{
         .m0 = (((a11 * b11) - (a12 * b10)) + (a13 * b09)) * invDet,
@@ -1200,30 +1263,32 @@ pub fn Vector3Unproject(arg_source: Vector3, arg_projection: Matrix, arg_view: M
     result.z = qtransformed.z / qtransformed.w;
     return result;
 }
-pub fn Vector3ToFloatV(arg_v: Vector3) float3 {
+pub fn Vector3ToFloatV(arg_v: Vector3) callconv(.c) float3 {
     var v = arg_v;
     _ = &v;
     var buffer: float3 = float3{
-        .v = .{ 0, 0, 0 },
+        .v = [1]f32{
+            @floatFromInt(@as(c_int, 0)),
+        } ++ @as([2]f32, @splat(0)),
     };
     _ = &buffer;
-    buffer.v[@as(c_uint, @intCast(@as(c_int, 0)))] = v.x;
-    buffer.v[@as(c_uint, @intCast(@as(c_int, 1)))] = v.y;
-    buffer.v[@as(c_uint, @intCast(@as(c_int, 2)))] = v.z;
+    buffer.v[@as(c_int, 0)] = v.x;
+    buffer.v[@as(c_int, 1)] = v.y;
+    buffer.v[@as(c_int, 2)] = v.z;
     return buffer;
 }
-pub fn Vector3Invert(arg_v: Vector3) Vector3 {
+pub fn Vector3Invert(arg_v: Vector3) callconv(.c) Vector3 {
     var v = arg_v;
     _ = &v;
     var result: Vector3 = Vector3{
-        .x = 1.0 / v.x,
-        .y = 1.0 / v.y,
-        .z = 1.0 / v.z,
+        .x = @as(f32, 1.0) / v.x,
+        .y = @as(f32, 1.0) / v.y,
+        .z = @as(f32, 1.0) / v.z,
     };
     _ = &result;
     return result;
 }
-pub fn Vector3Clamp(arg_v: Vector3, arg_min: Vector3, arg_max: Vector3) Vector3 {
+pub fn Vector3Clamp(arg_v: Vector3, arg_min: Vector3, arg_max: Vector3) callconv(.c) Vector3 {
     var v = arg_v;
     _ = &v;
     var min = arg_min;
@@ -1231,7 +1296,7 @@ pub fn Vector3Clamp(arg_v: Vector3, arg_min: Vector3, arg_max: Vector3) Vector3 
     var max = arg_max;
     _ = &max;
     var result: Vector3 = Vector3{
-        .x = @as(f32, @floatFromInt(@as(c_int, 0))),
+        .x = @floatFromInt(@as(c_int, 0)),
         .y = 0,
         .z = 0,
     };
@@ -1241,7 +1306,7 @@ pub fn Vector3Clamp(arg_v: Vector3, arg_min: Vector3, arg_max: Vector3) Vector3 
     result.z = fminf(max.z, fmaxf(min.z, v.z));
     return result;
 }
-pub fn Vector3ClampValue(arg_v: Vector3, arg_min: f32, arg_max: f32) Vector3 {
+pub fn Vector3ClampValue(arg_v: Vector3, arg_min: f32, arg_max: f32) callconv(.c) Vector3 {
     var v = arg_v;
     _ = &v;
     var min = arg_min;
@@ -1252,9 +1317,9 @@ pub fn Vector3ClampValue(arg_v: Vector3, arg_min: f32, arg_max: f32) Vector3 {
     _ = &result;
     var length: f32 = ((v.x * v.x) + (v.y * v.y)) + (v.z * v.z);
     _ = &length;
-    if (length > 0.0) {
+    if (length > @as(f32, 0.0)) {
         length = sqrtf(length);
-        var scale: f32 = 1;
+        var scale: f32 = @floatFromInt(@as(c_int, 1));
         _ = &scale;
         if (length < min) {
             scale = min / length;
@@ -1267,16 +1332,16 @@ pub fn Vector3ClampValue(arg_v: Vector3, arg_min: f32, arg_max: f32) Vector3 {
     }
     return result;
 }
-pub fn Vector3Equals(arg_p: Vector3, arg_q: Vector3) c_int {
+pub fn Vector3Equals(arg_p: Vector3, arg_q: Vector3) callconv(.c) c_int {
     var p = arg_p;
     _ = &p;
     var q = arg_q;
     _ = &q;
-    var result: c_int = @intFromBool(((fabsf(p.x - q.x) <= (0.0000009999999974752427 * fmaxf(1.0, fmaxf(fabsf(p.x), fabsf(q.x))))) and (fabsf(p.y - q.y) <= (0.0000009999999974752427 * fmaxf(1.0, fmaxf(fabsf(p.y), fabsf(q.y)))))) and (fabsf(p.z - q.z) <= (0.0000009999999974752427 * fmaxf(1.0, fmaxf(fabsf(p.z), fabsf(q.z))))));
+    var result: c_int = @intFromBool(((fabsf(p.x - q.x) <= (EPSILON * fmaxf(1.0, fmaxf(fabsf(p.x), fabsf(q.x))))) and (fabsf(p.y - q.y) <= (EPSILON * fmaxf(1.0, fmaxf(fabsf(p.y), fabsf(q.y)))))) and (fabsf(p.z - q.z) <= (EPSILON * fmaxf(1.0, fmaxf(fabsf(p.z), fabsf(q.z))))));
     _ = &result;
     return result;
 }
-pub fn Vector3Refract(arg_v: Vector3, arg_n: Vector3, arg_r: f32) Vector3 {
+pub fn Vector3Refract(arg_v: Vector3, arg_n: Vector3, arg_r: f32) callconv(.c) Vector3 {
     var v = arg_v;
     _ = &v;
     var n = arg_n;
@@ -1284,16 +1349,16 @@ pub fn Vector3Refract(arg_v: Vector3, arg_n: Vector3, arg_r: f32) Vector3 {
     var r = arg_r;
     _ = &r;
     var result: Vector3 = Vector3{
-        .x = @as(f32, @floatFromInt(@as(c_int, 0))),
+        .x = @floatFromInt(@as(c_int, 0)),
         .y = 0,
         .z = 0,
     };
     _ = &result;
     var dot: f32 = ((v.x * n.x) + (v.y * n.y)) + (v.z * n.z);
     _ = &dot;
-    var d: f32 = 1.0 - ((r * r) * (1.0 - (dot * dot)));
+    var d: f32 = @as(f32, 1.0) - ((r * r) * (@as(f32, 1.0) - (dot * dot)));
     _ = &d;
-    if (d >= 0.0) {
+    if (d >= @as(f32, 0.0)) {
         d = sqrtf(d);
         v.x = (r * v.x) - (((r * dot) + d) * n.x);
         v.y = (r * v.y) - (((r * dot) + d) * n.y);
@@ -1302,7 +1367,7 @@ pub fn Vector3Refract(arg_v: Vector3, arg_n: Vector3, arg_r: f32) Vector3 {
     }
     return result;
 }
-pub fn Vector4Zero() Vector4 {
+pub fn Vector4Zero() callconv(.c) Vector4 {
     var result: Vector4 = Vector4{
         .x = 0.0,
         .y = 0.0,
@@ -1312,7 +1377,7 @@ pub fn Vector4Zero() Vector4 {
     _ = &result;
     return result;
 }
-pub fn Vector4One() Vector4 {
+pub fn Vector4One() callconv(.c) Vector4 {
     var result: Vector4 = Vector4{
         .x = 1.0,
         .y = 1.0,
@@ -1322,7 +1387,7 @@ pub fn Vector4One() Vector4 {
     _ = &result;
     return result;
 }
-pub fn Vector4Add(arg_v1: Vector4, arg_v2: Vector4) Vector4 {
+pub fn Vector4Add(arg_v1: Vector4, arg_v2: Vector4) callconv(.c) Vector4 {
     var v1 = arg_v1;
     _ = &v1;
     var v2 = arg_v2;
@@ -1336,7 +1401,7 @@ pub fn Vector4Add(arg_v1: Vector4, arg_v2: Vector4) Vector4 {
     _ = &result;
     return result;
 }
-pub fn Vector4AddValue(arg_v: Vector4, arg_add: f32) Vector4 {
+pub fn Vector4AddValue(arg_v: Vector4, arg_add: f32) callconv(.c) Vector4 {
     var v = arg_v;
     _ = &v;
     var add = arg_add;
@@ -1350,7 +1415,7 @@ pub fn Vector4AddValue(arg_v: Vector4, arg_add: f32) Vector4 {
     _ = &result;
     return result;
 }
-pub fn Vector4Subtract(arg_v1: Vector4, arg_v2: Vector4) Vector4 {
+pub fn Vector4Subtract(arg_v1: Vector4, arg_v2: Vector4) callconv(.c) Vector4 {
     var v1 = arg_v1;
     _ = &v1;
     var v2 = arg_v2;
@@ -1364,7 +1429,7 @@ pub fn Vector4Subtract(arg_v1: Vector4, arg_v2: Vector4) Vector4 {
     _ = &result;
     return result;
 }
-pub fn Vector4SubtractValue(arg_v: Vector4, arg_add: f32) Vector4 {
+pub fn Vector4SubtractValue(arg_v: Vector4, arg_add: f32) callconv(.c) Vector4 {
     var v = arg_v;
     _ = &v;
     var add = arg_add;
@@ -1378,21 +1443,21 @@ pub fn Vector4SubtractValue(arg_v: Vector4, arg_add: f32) Vector4 {
     _ = &result;
     return result;
 }
-pub fn Vector4Length(arg_v: Vector4) f32 {
+pub fn Vector4Length(arg_v: Vector4) callconv(.c) f32 {
     var v = arg_v;
     _ = &v;
     var result: f32 = sqrtf((((v.x * v.x) + (v.y * v.y)) + (v.z * v.z)) + (v.w * v.w));
     _ = &result;
     return result;
 }
-pub fn Vector4LengthSqr(arg_v: Vector4) f32 {
+pub fn Vector4LengthSqr(arg_v: Vector4) callconv(.c) f32 {
     var v = arg_v;
     _ = &v;
     var result: f32 = (((v.x * v.x) + (v.y * v.y)) + (v.z * v.z)) + (v.w * v.w);
     _ = &result;
     return result;
 }
-pub fn Vector4DotProduct(arg_v1: Vector4, arg_v2: Vector4) f32 {
+pub fn Vector4DotProduct(arg_v1: Vector4, arg_v2: Vector4) callconv(.c) f32 {
     var v1 = arg_v1;
     _ = &v1;
     var v2 = arg_v2;
@@ -1401,7 +1466,7 @@ pub fn Vector4DotProduct(arg_v1: Vector4, arg_v2: Vector4) f32 {
     _ = &result;
     return result;
 }
-pub fn Vector4Distance(arg_v1: Vector4, arg_v2: Vector4) f32 {
+pub fn Vector4Distance(arg_v1: Vector4, arg_v2: Vector4) callconv(.c) f32 {
     var v1 = arg_v1;
     _ = &v1;
     var v2 = arg_v2;
@@ -1410,7 +1475,7 @@ pub fn Vector4Distance(arg_v1: Vector4, arg_v2: Vector4) f32 {
     _ = &result;
     return result;
 }
-pub fn Vector4DistanceSqr(arg_v1: Vector4, arg_v2: Vector4) f32 {
+pub fn Vector4DistanceSqr(arg_v1: Vector4, arg_v2: Vector4) callconv(.c) f32 {
     var v1 = arg_v1;
     _ = &v1;
     var v2 = arg_v2;
@@ -1419,7 +1484,7 @@ pub fn Vector4DistanceSqr(arg_v1: Vector4, arg_v2: Vector4) f32 {
     _ = &result;
     return result;
 }
-pub fn Vector4Scale(arg_v: Vector4, arg_scale: f32) Vector4 {
+pub fn Vector4Scale(arg_v: Vector4, arg_scale: f32) callconv(.c) Vector4 {
     var v = arg_v;
     _ = &v;
     var scale = arg_scale;
@@ -1433,7 +1498,7 @@ pub fn Vector4Scale(arg_v: Vector4, arg_scale: f32) Vector4 {
     _ = &result;
     return result;
 }
-pub fn Vector4Multiply(arg_v1: Vector4, arg_v2: Vector4) Vector4 {
+pub fn Vector4Multiply(arg_v1: Vector4, arg_v2: Vector4) callconv(.c) Vector4 {
     var v1 = arg_v1;
     _ = &v1;
     var v2 = arg_v2;
@@ -1447,7 +1512,7 @@ pub fn Vector4Multiply(arg_v1: Vector4, arg_v2: Vector4) Vector4 {
     _ = &result;
     return result;
 }
-pub fn Vector4Negate(arg_v: Vector4) Vector4 {
+pub fn Vector4Negate(arg_v: Vector4) callconv(.c) Vector4 {
     var v = arg_v;
     _ = &v;
     var result: Vector4 = Vector4{
@@ -1459,7 +1524,7 @@ pub fn Vector4Negate(arg_v: Vector4) Vector4 {
     _ = &result;
     return result;
 }
-pub fn Vector4Divide(arg_v1: Vector4, arg_v2: Vector4) Vector4 {
+pub fn Vector4Divide(arg_v1: Vector4, arg_v2: Vector4) callconv(.c) Vector4 {
     var v1 = arg_v1;
     _ = &v1;
     var v2 = arg_v2;
@@ -1473,11 +1538,11 @@ pub fn Vector4Divide(arg_v1: Vector4, arg_v2: Vector4) Vector4 {
     _ = &result;
     return result;
 }
-pub fn Vector4Normalize(arg_v: Vector4) Vector4 {
+pub fn Vector4Normalize(arg_v: Vector4) callconv(.c) Vector4 {
     var v = arg_v;
     _ = &v;
     var result: Vector4 = Vector4{
-        .x = @as(f32, @floatFromInt(@as(c_int, 0))),
+        .x = @floatFromInt(@as(c_int, 0)),
         .y = 0,
         .z = 0,
         .w = 0,
@@ -1486,7 +1551,7 @@ pub fn Vector4Normalize(arg_v: Vector4) Vector4 {
     var length: f32 = sqrtf((((v.x * v.x) + (v.y * v.y)) + (v.z * v.z)) + (v.w * v.w));
     _ = &length;
     if (length > @as(f32, @floatFromInt(@as(c_int, 0)))) {
-        var ilength: f32 = 1.0 / length;
+        var ilength: f32 = @as(f32, 1.0) / length;
         _ = &ilength;
         result.x = v.x * ilength;
         result.y = v.y * ilength;
@@ -1495,13 +1560,13 @@ pub fn Vector4Normalize(arg_v: Vector4) Vector4 {
     }
     return result;
 }
-pub fn Vector4Min(arg_v1: Vector4, arg_v2: Vector4) Vector4 {
+pub fn Vector4Min(arg_v1: Vector4, arg_v2: Vector4) callconv(.c) Vector4 {
     var v1 = arg_v1;
     _ = &v1;
     var v2 = arg_v2;
     _ = &v2;
     var result: Vector4 = Vector4{
-        .x = @as(f32, @floatFromInt(@as(c_int, 0))),
+        .x = @floatFromInt(@as(c_int, 0)),
         .y = 0,
         .z = 0,
         .w = 0,
@@ -1513,13 +1578,13 @@ pub fn Vector4Min(arg_v1: Vector4, arg_v2: Vector4) Vector4 {
     result.w = fminf(v1.w, v2.w);
     return result;
 }
-pub fn Vector4Max(arg_v1: Vector4, arg_v2: Vector4) Vector4 {
+pub fn Vector4Max(arg_v1: Vector4, arg_v2: Vector4) callconv(.c) Vector4 {
     var v1 = arg_v1;
     _ = &v1;
     var v2 = arg_v2;
     _ = &v2;
     var result: Vector4 = Vector4{
-        .x = @as(f32, @floatFromInt(@as(c_int, 0))),
+        .x = @floatFromInt(@as(c_int, 0)),
         .y = 0,
         .z = 0,
         .w = 0,
@@ -1531,7 +1596,7 @@ pub fn Vector4Max(arg_v1: Vector4, arg_v2: Vector4) Vector4 {
     result.w = fmaxf(v1.w, v2.w);
     return result;
 }
-pub fn Vector4Lerp(arg_v1: Vector4, arg_v2: Vector4, arg_amount: f32) Vector4 {
+pub fn Vector4Lerp(arg_v1: Vector4, arg_v2: Vector4, arg_amount: f32) callconv(.c) Vector4 {
     var v1 = arg_v1;
     _ = &v1;
     var v2 = arg_v2;
@@ -1539,7 +1604,7 @@ pub fn Vector4Lerp(arg_v1: Vector4, arg_v2: Vector4, arg_amount: f32) Vector4 {
     var amount = arg_amount;
     _ = &amount;
     var result: Vector4 = Vector4{
-        .x = @as(f32, @floatFromInt(@as(c_int, 0))),
+        .x = @floatFromInt(@as(c_int, 0)),
         .y = 0,
         .z = 0,
         .w = 0,
@@ -1551,7 +1616,7 @@ pub fn Vector4Lerp(arg_v1: Vector4, arg_v2: Vector4, arg_amount: f32) Vector4 {
     result.w = v1.w + (amount * (v2.w - v1.w));
     return result;
 }
-pub fn Vector4MoveTowards(arg_v: Vector4, arg_target: Vector4, arg_maxDistance: f32) Vector4 {
+pub fn Vector4MoveTowards(arg_v: Vector4, arg_target: Vector4, arg_maxDistance: f32) callconv(.c) Vector4 {
     var v = arg_v;
     _ = &v;
     var target = arg_target;
@@ -1559,7 +1624,7 @@ pub fn Vector4MoveTowards(arg_v: Vector4, arg_target: Vector4, arg_maxDistance: 
     var maxDistance = arg_maxDistance;
     _ = &maxDistance;
     var result: Vector4 = Vector4{
-        .x = @as(f32, @floatFromInt(@as(c_int, 0))),
+        .x = @floatFromInt(@as(c_int, 0)),
         .y = 0,
         .z = 0,
         .w = 0,
@@ -1584,79 +1649,79 @@ pub fn Vector4MoveTowards(arg_v: Vector4, arg_target: Vector4, arg_maxDistance: 
     result.w = v.w + ((dw / dist) * maxDistance);
     return result;
 }
-pub fn Vector4Invert(arg_v: Vector4) Vector4 {
+pub fn Vector4Invert(arg_v: Vector4) callconv(.c) Vector4 {
     var v = arg_v;
     _ = &v;
     var result: Vector4 = Vector4{
-        .x = 1.0 / v.x,
-        .y = 1.0 / v.y,
-        .z = 1.0 / v.z,
-        .w = 1.0 / v.w,
+        .x = @as(f32, 1.0) / v.x,
+        .y = @as(f32, 1.0) / v.y,
+        .z = @as(f32, 1.0) / v.z,
+        .w = @as(f32, 1.0) / v.w,
     };
     _ = &result;
     return result;
 }
-pub fn Vector4Equals(arg_p: Vector4, arg_q: Vector4) c_int {
+pub fn Vector4Equals(arg_p: Vector4, arg_q: Vector4) callconv(.c) c_int {
     var p = arg_p;
     _ = &p;
     var q = arg_q;
     _ = &q;
-    var result: c_int = @intFromBool((((fabsf(p.x - q.x) <= (0.0000009999999974752427 * fmaxf(1.0, fmaxf(fabsf(p.x), fabsf(q.x))))) and (fabsf(p.y - q.y) <= (0.0000009999999974752427 * fmaxf(1.0, fmaxf(fabsf(p.y), fabsf(q.y)))))) and (fabsf(p.z - q.z) <= (0.0000009999999974752427 * fmaxf(1.0, fmaxf(fabsf(p.z), fabsf(q.z)))))) and (fabsf(p.w - q.w) <= (0.0000009999999974752427 * fmaxf(1.0, fmaxf(fabsf(p.w), fabsf(q.w))))));
+    var result: c_int = @intFromBool((((fabsf(p.x - q.x) <= (EPSILON * fmaxf(1.0, fmaxf(fabsf(p.x), fabsf(q.x))))) and (fabsf(p.y - q.y) <= (EPSILON * fmaxf(1.0, fmaxf(fabsf(p.y), fabsf(q.y)))))) and (fabsf(p.z - q.z) <= (EPSILON * fmaxf(1.0, fmaxf(fabsf(p.z), fabsf(q.z)))))) and (fabsf(p.w - q.w) <= (EPSILON * fmaxf(1.0, fmaxf(fabsf(p.w), fabsf(q.w))))));
     _ = &result;
     return result;
 }
-pub fn MatrixDeterminant(arg_mat: Matrix) f32 {
+pub fn MatrixDeterminant(arg_mat: Matrix) callconv(.c) f32 {
     var mat = arg_mat;
     _ = &mat;
     var result: f32 = 0.0;
     _ = &result;
-    var a00: f32 = mat.m0;
-    _ = &a00;
-    var a01: f32 = mat.m1;
-    _ = &a01;
-    var a02: f32 = mat.m2;
-    _ = &a02;
-    var a03: f32 = mat.m3;
-    _ = &a03;
-    var a10: f32 = mat.m4;
-    _ = &a10;
-    var a11: f32 = mat.m5;
-    _ = &a11;
-    var a12: f32 = mat.m6;
-    _ = &a12;
-    var a13: f32 = mat.m7;
-    _ = &a13;
-    var a20: f32 = mat.m8;
-    _ = &a20;
-    var a21: f32 = mat.m9;
-    _ = &a21;
-    var a22: f32 = mat.m10;
-    _ = &a22;
-    var a23: f32 = mat.m11;
-    _ = &a23;
-    var a30: f32 = mat.m12;
-    _ = &a30;
-    var a31: f32 = mat.m13;
-    _ = &a31;
-    var a32: f32 = mat.m14;
-    _ = &a32;
-    var a33: f32 = mat.m15;
-    _ = &a33;
-    result = (((((((((((((((((((((((((a30 * a21) * a12) * a03) - (((a20 * a31) * a12) * a03)) - (((a30 * a11) * a22) * a03)) + (((a10 * a31) * a22) * a03)) + (((a20 * a11) * a32) * a03)) - (((a10 * a21) * a32) * a03)) - (((a30 * a21) * a02) * a13)) + (((a20 * a31) * a02) * a13)) + (((a30 * a01) * a22) * a13)) - (((a00 * a31) * a22) * a13)) - (((a20 * a01) * a32) * a13)) + (((a00 * a21) * a32) * a13)) + (((a30 * a11) * a02) * a23)) - (((a10 * a31) * a02) * a23)) - (((a30 * a01) * a12) * a23)) + (((a00 * a31) * a12) * a23)) + (((a10 * a01) * a32) * a23)) - (((a00 * a11) * a32) * a23)) - (((a20 * a11) * a02) * a33)) + (((a10 * a21) * a02) * a33)) + (((a20 * a01) * a12) * a33)) - (((a00 * a21) * a12) * a33)) - (((a10 * a01) * a22) * a33)) + (((a00 * a11) * a22) * a33);
+    var m0: f32 = mat.m0;
+    _ = &m0;
+    var m1: f32 = mat.m1;
+    _ = &m1;
+    var m2: f32 = mat.m2;
+    _ = &m2;
+    var m3: f32 = mat.m3;
+    _ = &m3;
+    var m4: f32 = mat.m4;
+    _ = &m4;
+    var m5: f32 = mat.m5;
+    _ = &m5;
+    var m6: f32 = mat.m6;
+    _ = &m6;
+    var m7: f32 = mat.m7;
+    _ = &m7;
+    var m8: f32 = mat.m8;
+    _ = &m8;
+    var m9: f32 = mat.m9;
+    _ = &m9;
+    var m10: f32 = mat.m10;
+    _ = &m10;
+    var m11: f32 = mat.m11;
+    _ = &m11;
+    var m12: f32 = mat.m12;
+    _ = &m12;
+    var m13: f32 = mat.m13;
+    _ = &m13;
+    var m14: f32 = mat.m14;
+    _ = &m14;
+    var m15: f32 = mat.m15;
+    _ = &m15;
+    result = (((m0 * (((m5 * ((m10 * m15) - (m11 * m14))) - (m9 * ((m6 * m15) - (m7 * m14)))) + (m13 * ((m6 * m11) - (m7 * m10))))) - (m4 * (((m1 * ((m10 * m15) - (m11 * m14))) - (m9 * ((m2 * m15) - (m3 * m14)))) + (m13 * ((m2 * m11) - (m3 * m10)))))) + (m8 * (((m1 * ((m6 * m15) - (m7 * m14))) - (m5 * ((m2 * m15) - (m3 * m14)))) + (m13 * ((m2 * m7) - (m3 * m6)))))) - (m12 * (((m1 * ((m6 * m11) - (m7 * m10))) - (m5 * ((m2 * m11) - (m3 * m10)))) + (m9 * ((m2 * m7) - (m3 * m6)))));
     return result;
 }
-pub fn MatrixTrace(arg_mat: Matrix) f32 {
+pub fn MatrixTrace(arg_mat: Matrix) callconv(.c) f32 {
     var mat = arg_mat;
     _ = &mat;
     var result: f32 = ((mat.m0 + mat.m5) + mat.m10) + mat.m15;
     _ = &result;
     return result;
 }
-pub fn MatrixTranspose(arg_mat: Matrix) Matrix {
+pub fn MatrixTranspose(arg_mat: Matrix) callconv(.c) Matrix {
     var mat = arg_mat;
     _ = &mat;
     var result: Matrix = Matrix{
-        .m0 = @as(f32, @floatFromInt(@as(c_int, 0))),
+        .m0 = @floatFromInt(@as(c_int, 0)),
         .m4 = 0,
         .m8 = 0,
         .m12 = 0,
@@ -1692,11 +1757,11 @@ pub fn MatrixTranspose(arg_mat: Matrix) Matrix {
     result.m15 = mat.m15;
     return result;
 }
-pub fn MatrixInvert(arg_mat: Matrix) Matrix {
+pub fn MatrixInvert(arg_mat: Matrix) callconv(.c) Matrix {
     var mat = arg_mat;
     _ = &mat;
     var result: Matrix = Matrix{
-        .m0 = @as(f32, @floatFromInt(@as(c_int, 0))),
+        .m0 = @floatFromInt(@as(c_int, 0)),
         .m4 = 0,
         .m8 = 0,
         .m12 = 0,
@@ -1770,7 +1835,7 @@ pub fn MatrixInvert(arg_mat: Matrix) Matrix {
     _ = &b10;
     var b11: f32 = (a22 * a33) - (a23 * a32);
     _ = &b11;
-    var invDet: f32 = 1.0 / ((((((b00 * b11) - (b01 * b10)) + (b02 * b09)) + (b03 * b08)) - (b04 * b07)) + (b05 * b06));
+    var invDet: f32 = @as(f32, 1.0) / ((((((b00 * b11) - (b01 * b10)) + (b02 * b09)) + (b03 * b08)) - (b04 * b07)) + (b05 * b06));
     _ = &invDet;
     result.m0 = (((a11 * b11) - (a12 * b10)) + (a13 * b09)) * invDet;
     result.m1 = (((-a01 * b11) + (a02 * b10)) - (a03 * b09)) * invDet;
@@ -1790,7 +1855,7 @@ pub fn MatrixInvert(arg_mat: Matrix) Matrix {
     result.m15 = (((a20 * b03) - (a21 * b01)) + (a22 * b00)) * invDet;
     return result;
 }
-pub fn MatrixIdentity() Matrix {
+pub fn MatrixIdentity() callconv(.c) Matrix {
     var result: Matrix = Matrix{
         .m0 = 1.0,
         .m4 = 0.0,
@@ -1812,13 +1877,13 @@ pub fn MatrixIdentity() Matrix {
     _ = &result;
     return result;
 }
-pub fn MatrixAdd(arg_left: Matrix, arg_right: Matrix) Matrix {
+pub fn MatrixAdd(arg_left: Matrix, arg_right: Matrix) callconv(.c) Matrix {
     var left = arg_left;
     _ = &left;
     var right = arg_right;
     _ = &right;
     var result: Matrix = Matrix{
-        .m0 = @as(f32, @floatFromInt(@as(c_int, 0))),
+        .m0 = @floatFromInt(@as(c_int, 0)),
         .m4 = 0,
         .m8 = 0,
         .m12 = 0,
@@ -1854,13 +1919,13 @@ pub fn MatrixAdd(arg_left: Matrix, arg_right: Matrix) Matrix {
     result.m15 = left.m15 + right.m15;
     return result;
 }
-pub fn MatrixSubtract(arg_left: Matrix, arg_right: Matrix) Matrix {
+pub fn MatrixSubtract(arg_left: Matrix, arg_right: Matrix) callconv(.c) Matrix {
     var left = arg_left;
     _ = &left;
     var right = arg_right;
     _ = &right;
     var result: Matrix = Matrix{
-        .m0 = @as(f32, @floatFromInt(@as(c_int, 0))),
+        .m0 = @floatFromInt(@as(c_int, 0)),
         .m4 = 0,
         .m8 = 0,
         .m12 = 0,
@@ -1896,13 +1961,13 @@ pub fn MatrixSubtract(arg_left: Matrix, arg_right: Matrix) Matrix {
     result.m15 = left.m15 - right.m15;
     return result;
 }
-pub fn MatrixMultiply(arg_left: Matrix, arg_right: Matrix) Matrix {
+pub fn MatrixMultiply(arg_left: Matrix, arg_right: Matrix) callconv(.c) Matrix {
     var left = arg_left;
     _ = &left;
     var right = arg_right;
     _ = &right;
     var result: Matrix = Matrix{
-        .m0 = @as(f32, @floatFromInt(@as(c_int, 0))),
+        .m0 = @floatFromInt(@as(c_int, 0)),
         .m4 = 0,
         .m8 = 0,
         .m12 = 0,
@@ -1938,7 +2003,33 @@ pub fn MatrixMultiply(arg_left: Matrix, arg_right: Matrix) Matrix {
     result.m15 = (((left.m12 * right.m3) + (left.m13 * right.m7)) + (left.m14 * right.m11)) + (left.m15 * right.m15);
     return result;
 }
-pub fn MatrixTranslate(arg_x: f32, arg_y: f32, arg_z: f32) Matrix {
+pub fn MatrixMultiplyValue(arg_left: Matrix, arg_value: f32) callconv(.c) Matrix {
+    var left = arg_left;
+    _ = &left;
+    var value = arg_value;
+    _ = &value;
+    var result: Matrix = Matrix{
+        .m0 = left.m0 * value,
+        .m4 = left.m4 * value,
+        .m8 = left.m8 * value,
+        .m12 = left.m12 * value,
+        .m1 = left.m1 * value,
+        .m5 = left.m5 * value,
+        .m9 = left.m9 * value,
+        .m13 = left.m13 * value,
+        .m2 = left.m2 * value,
+        .m6 = left.m6 * value,
+        .m10 = left.m10 * value,
+        .m14 = left.m14 * value,
+        .m3 = left.m3 * value,
+        .m7 = left.m7 * value,
+        .m11 = left.m11 * value,
+        .m15 = left.m15 * value,
+    };
+    _ = &result;
+    return result;
+}
+pub fn MatrixTranslate(arg_x: f32, arg_y: f32, arg_z: f32) callconv(.c) Matrix {
     var x = arg_x;
     _ = &x;
     var y = arg_y;
@@ -1966,13 +2057,13 @@ pub fn MatrixTranslate(arg_x: f32, arg_y: f32, arg_z: f32) Matrix {
     _ = &result;
     return result;
 }
-pub fn MatrixRotate(arg_axis: Vector3, arg_angle: f32) Matrix {
+pub fn MatrixRotate(arg_axis: Vector3, arg_angle: f32) callconv(.c) Matrix {
     var axis = arg_axis;
     _ = &axis;
     var angle = arg_angle;
     _ = &angle;
     var result: Matrix = Matrix{
-        .m0 = @as(f32, @floatFromInt(@as(c_int, 0))),
+        .m0 = @floatFromInt(@as(c_int, 0)),
         .m4 = 0,
         .m8 = 0,
         .m12 = 0,
@@ -1998,8 +2089,8 @@ pub fn MatrixRotate(arg_axis: Vector3, arg_angle: f32) Matrix {
     _ = &z;
     var lengthSquared: f32 = ((x * x) + (y * y)) + (z * z);
     _ = &lengthSquared;
-    if ((lengthSquared != 1.0) and (lengthSquared != 0.0)) {
-        var ilength: f32 = 1.0 / sqrtf(lengthSquared);
+    if ((lengthSquared != @as(f32, 1.0)) and (lengthSquared != @as(f32, 0.0))) {
+        var ilength: f32 = @as(f32, 1.0) / sqrtf(lengthSquared);
         _ = &ilength;
         x *= ilength;
         y *= ilength;
@@ -2009,7 +2100,7 @@ pub fn MatrixRotate(arg_axis: Vector3, arg_angle: f32) Matrix {
     _ = &sinres;
     var cosres: f32 = cosf(angle);
     _ = &cosres;
-    var t: f32 = 1.0 - cosres;
+    var t: f32 = @as(f32, 1.0) - cosres;
     _ = &t;
     result.m0 = ((x * x) * t) + cosres;
     result.m1 = ((y * x) * t) + (z * sinres);
@@ -2029,7 +2120,7 @@ pub fn MatrixRotate(arg_axis: Vector3, arg_angle: f32) Matrix {
     result.m15 = 1.0;
     return result;
 }
-pub fn MatrixRotateX(arg_angle: f32) Matrix {
+pub fn MatrixRotateX(arg_angle: f32) callconv(.c) Matrix {
     var angle = arg_angle;
     _ = &angle;
     var result: Matrix = Matrix{
@@ -2061,7 +2152,7 @@ pub fn MatrixRotateX(arg_angle: f32) Matrix {
     result.m10 = cosres;
     return result;
 }
-pub fn MatrixRotateY(arg_angle: f32) Matrix {
+pub fn MatrixRotateY(arg_angle: f32) callconv(.c) Matrix {
     var angle = arg_angle;
     _ = &angle;
     var result: Matrix = Matrix{
@@ -2093,7 +2184,7 @@ pub fn MatrixRotateY(arg_angle: f32) Matrix {
     result.m10 = cosres;
     return result;
 }
-pub fn MatrixRotateZ(arg_angle: f32) Matrix {
+pub fn MatrixRotateZ(arg_angle: f32) callconv(.c) Matrix {
     var angle = arg_angle;
     _ = &angle;
     var result: Matrix = Matrix{
@@ -2125,7 +2216,7 @@ pub fn MatrixRotateZ(arg_angle: f32) Matrix {
     result.m5 = cosres;
     return result;
 }
-pub fn MatrixRotateXYZ(arg_angle: Vector3) Matrix {
+pub fn MatrixRotateXYZ(arg_angle: Vector3) callconv(.c) Matrix {
     var angle = arg_angle;
     _ = &angle;
     var result: Matrix = Matrix{
@@ -2170,11 +2261,11 @@ pub fn MatrixRotateXYZ(arg_angle: Vector3) Matrix {
     result.m10 = cosy * cosx;
     return result;
 }
-pub fn MatrixRotateZYX(arg_angle: Vector3) Matrix {
+pub fn MatrixRotateZYX(arg_angle: Vector3) callconv(.c) Matrix {
     var angle = arg_angle;
     _ = &angle;
     var result: Matrix = Matrix{
-        .m0 = @as(f32, @floatFromInt(@as(c_int, 0))),
+        .m0 = @floatFromInt(@as(c_int, 0)),
         .m4 = 0,
         .m8 = 0,
         .m12 = 0,
@@ -2207,22 +2298,22 @@ pub fn MatrixRotateZYX(arg_angle: Vector3) Matrix {
     result.m0 = cz * cy;
     result.m4 = ((cz * sy) * sx) - (cx * sz);
     result.m8 = (sz * sx) + ((cz * cx) * sy);
-    result.m12 = 0;
+    result.m12 = @floatFromInt(@as(c_int, 0));
     result.m1 = cy * sz;
     result.m5 = (cz * cx) + ((sz * sy) * sx);
     result.m9 = ((cx * sz) * sy) - (cz * sx);
-    result.m13 = 0;
+    result.m13 = @floatFromInt(@as(c_int, 0));
     result.m2 = -sy;
     result.m6 = cy * sx;
     result.m10 = cy * cx;
-    result.m14 = 0;
-    result.m3 = 0;
-    result.m7 = 0;
-    result.m11 = 0;
-    result.m15 = 1;
+    result.m14 = @floatFromInt(@as(c_int, 0));
+    result.m3 = @floatFromInt(@as(c_int, 0));
+    result.m7 = @floatFromInt(@as(c_int, 0));
+    result.m11 = @floatFromInt(@as(c_int, 0));
+    result.m15 = @floatFromInt(@as(c_int, 1));
     return result;
 }
-pub fn MatrixScale(arg_x: f32, arg_y: f32, arg_z: f32) Matrix {
+pub fn MatrixScale(arg_x: f32, arg_y: f32, arg_z: f32) callconv(.c) Matrix {
     var x = arg_x;
     _ = &x;
     var y = arg_y;
@@ -2250,7 +2341,7 @@ pub fn MatrixScale(arg_x: f32, arg_y: f32, arg_z: f32) Matrix {
     _ = &result;
     return result;
 }
-pub fn MatrixFrustum(arg_left: f64, arg_right: f64, arg_bottom: f64, arg_top: f64, arg_near: f64, arg_far: f64) Matrix {
+pub fn MatrixFrustum(arg_left: f64, arg_right: f64, arg_bottom: f64, arg_top: f64, arg_nearPlane: f64, arg_farPlane: f64) callconv(.c) Matrix {
     var left = arg_left;
     _ = &left;
     var right = arg_right;
@@ -2259,12 +2350,12 @@ pub fn MatrixFrustum(arg_left: f64, arg_right: f64, arg_bottom: f64, arg_top: f6
     _ = &bottom;
     var top = arg_top;
     _ = &top;
-    var near = arg_near;
-    _ = &near;
-    var far = arg_far;
-    _ = &far;
+    var nearPlane = arg_nearPlane;
+    _ = &nearPlane;
+    var farPlane = arg_farPlane;
+    _ = &farPlane;
     var result: Matrix = Matrix{
-        .m0 = @as(f32, @floatFromInt(@as(c_int, 0))),
+        .m0 = @floatFromInt(@as(c_int, 0)),
         .m4 = 0,
         .m8 = 0,
         .m12 = 0,
@@ -2282,31 +2373,31 @@ pub fn MatrixFrustum(arg_left: f64, arg_right: f64, arg_bottom: f64, arg_top: f6
         .m15 = 0,
     };
     _ = &result;
-    var rl: f32 = @as(f32, @floatCast(right - left));
+    var rl: f32 = @floatCast(right - left);
     _ = &rl;
-    var tb: f32 = @as(f32, @floatCast(top - bottom));
+    var tb: f32 = @floatCast(top - bottom);
     _ = &tb;
-    var @"fn": f32 = @as(f32, @floatCast(far - near));
+    var @"fn": f32 = @floatCast(farPlane - nearPlane);
     _ = &@"fn";
-    result.m0 = (@as(f32, @floatCast(near)) * 2.0) / rl;
+    result.m0 = (@as(f32, @floatCast(nearPlane)) * @as(f32, 2.0)) / rl;
     result.m1 = 0.0;
     result.m2 = 0.0;
     result.m3 = 0.0;
     result.m4 = 0.0;
-    result.m5 = (@as(f32, @floatCast(near)) * 2.0) / tb;
+    result.m5 = (@as(f32, @floatCast(nearPlane)) * @as(f32, 2.0)) / tb;
     result.m6 = 0.0;
     result.m7 = 0.0;
     result.m8 = (@as(f32, @floatCast(right)) + @as(f32, @floatCast(left))) / rl;
     result.m9 = (@as(f32, @floatCast(top)) + @as(f32, @floatCast(bottom))) / tb;
-    result.m10 = -(@as(f32, @floatCast(far)) + @as(f32, @floatCast(near))) / @"fn";
-    result.m11 = -1.0;
+    result.m10 = -(@as(f32, @floatCast(farPlane)) + @as(f32, @floatCast(nearPlane))) / @"fn";
+    result.m11 = -@as(f32, 1.0);
     result.m12 = 0.0;
     result.m13 = 0.0;
-    result.m14 = -((@as(f32, @floatCast(far)) * @as(f32, @floatCast(near))) * 2.0) / @"fn";
+    result.m14 = -((@as(f32, @floatCast(farPlane)) * @as(f32, @floatCast(nearPlane))) * @as(f32, 2.0)) / @"fn";
     result.m15 = 0.0;
     return result;
 }
-pub fn MatrixPerspective(arg_fovY: f64, arg_aspect: f64, arg_nearPlane: f64, arg_farPlane: f64) Matrix {
+pub fn MatrixPerspective(arg_fovY: f64, arg_aspect: f64, arg_nearPlane: f64, arg_farPlane: f64) callconv(.c) Matrix {
     var fovY = arg_fovY;
     _ = &fovY;
     var aspect = arg_aspect;
@@ -2316,7 +2407,7 @@ pub fn MatrixPerspective(arg_fovY: f64, arg_aspect: f64, arg_nearPlane: f64, arg
     var farPlane = arg_farPlane;
     _ = &farPlane;
     var result: Matrix = Matrix{
-        .m0 = @as(f32, @floatFromInt(@as(c_int, 0))),
+        .m0 = @floatFromInt(@as(c_int, 0)),
         .m4 = 0,
         .m8 = 0,
         .m12 = 0,
@@ -2334,7 +2425,7 @@ pub fn MatrixPerspective(arg_fovY: f64, arg_aspect: f64, arg_nearPlane: f64, arg
         .m15 = 0,
     };
     _ = &result;
-    var top: f64 = nearPlane * tan(fovY * 0.5);
+    var top: f64 = nearPlane * tan(fovY * @as(f64, 0.5));
     _ = &top;
     var bottom: f64 = -top;
     _ = &bottom;
@@ -2342,22 +2433,22 @@ pub fn MatrixPerspective(arg_fovY: f64, arg_aspect: f64, arg_nearPlane: f64, arg
     _ = &right;
     var left: f64 = -right;
     _ = &left;
-    var rl: f32 = @as(f32, @floatCast(right - left));
+    var rl: f32 = @floatCast(right - left);
     _ = &rl;
-    var tb: f32 = @as(f32, @floatCast(top - bottom));
+    var tb: f32 = @floatCast(top - bottom);
     _ = &tb;
-    var @"fn": f32 = @as(f32, @floatCast(farPlane - nearPlane));
+    var @"fn": f32 = @floatCast(farPlane - nearPlane);
     _ = &@"fn";
-    result.m0 = (@as(f32, @floatCast(nearPlane)) * 2.0) / rl;
-    result.m5 = (@as(f32, @floatCast(nearPlane)) * 2.0) / tb;
+    result.m0 = (@as(f32, @floatCast(nearPlane)) * @as(f32, 2.0)) / rl;
+    result.m5 = (@as(f32, @floatCast(nearPlane)) * @as(f32, 2.0)) / tb;
     result.m8 = (@as(f32, @floatCast(right)) + @as(f32, @floatCast(left))) / rl;
     result.m9 = (@as(f32, @floatCast(top)) + @as(f32, @floatCast(bottom))) / tb;
     result.m10 = -(@as(f32, @floatCast(farPlane)) + @as(f32, @floatCast(nearPlane))) / @"fn";
-    result.m11 = -1.0;
-    result.m14 = -((@as(f32, @floatCast(farPlane)) * @as(f32, @floatCast(nearPlane))) * 2.0) / @"fn";
+    result.m11 = -@as(f32, 1.0);
+    result.m14 = -((@as(f32, @floatCast(farPlane)) * @as(f32, @floatCast(nearPlane))) * @as(f32, 2.0)) / @"fn";
     return result;
 }
-pub fn MatrixOrtho(arg_left: f64, arg_right: f64, arg_bottom: f64, arg_top: f64, arg_nearPlane: f64, arg_farPlane: f64) Matrix {
+pub fn MatrixOrtho(arg_left: f64, arg_right: f64, arg_bottom: f64, arg_top: f64, arg_nearPlane: f64, arg_farPlane: f64) callconv(.c) Matrix {
     var left = arg_left;
     _ = &left;
     var right = arg_right;
@@ -2371,7 +2462,7 @@ pub fn MatrixOrtho(arg_left: f64, arg_right: f64, arg_bottom: f64, arg_top: f64,
     var farPlane = arg_farPlane;
     _ = &farPlane;
     var result: Matrix = Matrix{
-        .m0 = @as(f32, @floatFromInt(@as(c_int, 0))),
+        .m0 = @floatFromInt(@as(c_int, 0)),
         .m4 = 0,
         .m8 = 0,
         .m12 = 0,
@@ -2389,23 +2480,23 @@ pub fn MatrixOrtho(arg_left: f64, arg_right: f64, arg_bottom: f64, arg_top: f64,
         .m15 = 0,
     };
     _ = &result;
-    var rl: f32 = @as(f32, @floatCast(right - left));
+    var rl: f32 = @floatCast(right - left);
     _ = &rl;
-    var tb: f32 = @as(f32, @floatCast(top - bottom));
+    var tb: f32 = @floatCast(top - bottom);
     _ = &tb;
-    var @"fn": f32 = @as(f32, @floatCast(farPlane - nearPlane));
+    var @"fn": f32 = @floatCast(farPlane - nearPlane);
     _ = &@"fn";
-    result.m0 = 2.0 / rl;
+    result.m0 = @as(f32, 2.0) / rl;
     result.m1 = 0.0;
     result.m2 = 0.0;
     result.m3 = 0.0;
     result.m4 = 0.0;
-    result.m5 = 2.0 / tb;
+    result.m5 = @as(f32, 2.0) / tb;
     result.m6 = 0.0;
     result.m7 = 0.0;
     result.m8 = 0.0;
     result.m9 = 0.0;
-    result.m10 = -2.0 / @"fn";
+    result.m10 = -@as(f32, 2.0) / @"fn";
     result.m11 = 0.0;
     result.m12 = -(@as(f32, @floatCast(left)) + @as(f32, @floatCast(right))) / rl;
     result.m13 = -(@as(f32, @floatCast(top)) + @as(f32, @floatCast(bottom))) / tb;
@@ -2413,7 +2504,7 @@ pub fn MatrixOrtho(arg_left: f64, arg_right: f64, arg_bottom: f64, arg_top: f64,
     result.m15 = 1.0;
     return result;
 }
-pub fn MatrixLookAt(arg_eye: Vector3, arg_target: Vector3, arg_up: Vector3) Matrix {
+pub fn MatrixLookAt(arg_eye: Vector3, arg_target: Vector3, arg_up: Vector3) callconv(.c) Matrix {
     var eye = arg_eye;
     _ = &eye;
     var target = arg_target;
@@ -2421,7 +2512,7 @@ pub fn MatrixLookAt(arg_eye: Vector3, arg_target: Vector3, arg_up: Vector3) Matr
     var up = arg_up;
     _ = &up;
     var result: Matrix = Matrix{
-        .m0 = @as(f32, @floatFromInt(@as(c_int, 0))),
+        .m0 = @floatFromInt(@as(c_int, 0)),
         .m4 = 0,
         .m8 = 0,
         .m12 = 0,
@@ -2452,10 +2543,10 @@ pub fn MatrixLookAt(arg_eye: Vector3, arg_target: Vector3, arg_up: Vector3) Matr
     var v: Vector3 = vz;
     _ = &v;
     length = sqrtf(((v.x * v.x) + (v.y * v.y)) + (v.z * v.z));
-    if (length == 0.0) {
+    if (length == @as(f32, 0.0)) {
         length = 1.0;
     }
-    ilength = 1.0 / length;
+    ilength = @as(f32, 1.0) / length;
     vz.x *= ilength;
     vz.y *= ilength;
     vz.z *= ilength;
@@ -2467,10 +2558,10 @@ pub fn MatrixLookAt(arg_eye: Vector3, arg_target: Vector3, arg_up: Vector3) Matr
     _ = &vx;
     v = vx;
     length = sqrtf(((v.x * v.x) + (v.y * v.y)) + (v.z * v.z));
-    if (length == 0.0) {
+    if (length == @as(f32, 0.0)) {
         length = 1.0;
     }
-    ilength = 1.0 / length;
+    ilength = @as(f32, 1.0) / length;
     vx.x *= ilength;
     vx.y *= ilength;
     vx.z *= ilength;
@@ -2498,32 +2589,34 @@ pub fn MatrixLookAt(arg_eye: Vector3, arg_target: Vector3, arg_up: Vector3) Matr
     result.m15 = 1.0;
     return result;
 }
-pub fn MatrixToFloatV(arg_mat: Matrix) float16 {
+pub fn MatrixToFloatV(arg_mat: Matrix) callconv(.c) float16 {
     var mat = arg_mat;
     _ = &mat;
     var result: float16 = float16{
-        .v = @splat(0),
+        .v = [1]f32{
+            @floatFromInt(@as(c_int, 0)),
+        } ++ @as([15]f32, @splat(0)),
     };
     _ = &result;
-    result.v[@as(c_uint, @intCast(@as(c_int, 0)))] = mat.m0;
-    result.v[@as(c_uint, @intCast(@as(c_int, 1)))] = mat.m1;
-    result.v[@as(c_uint, @intCast(@as(c_int, 2)))] = mat.m2;
-    result.v[@as(c_uint, @intCast(@as(c_int, 3)))] = mat.m3;
-    result.v[@as(c_uint, @intCast(@as(c_int, 4)))] = mat.m4;
-    result.v[@as(c_uint, @intCast(@as(c_int, 5)))] = mat.m5;
-    result.v[@as(c_uint, @intCast(@as(c_int, 6)))] = mat.m6;
-    result.v[@as(c_uint, @intCast(@as(c_int, 7)))] = mat.m7;
-    result.v[@as(c_uint, @intCast(@as(c_int, 8)))] = mat.m8;
-    result.v[@as(c_uint, @intCast(@as(c_int, 9)))] = mat.m9;
-    result.v[@as(c_uint, @intCast(@as(c_int, 10)))] = mat.m10;
-    result.v[@as(c_uint, @intCast(@as(c_int, 11)))] = mat.m11;
-    result.v[@as(c_uint, @intCast(@as(c_int, 12)))] = mat.m12;
-    result.v[@as(c_uint, @intCast(@as(c_int, 13)))] = mat.m13;
-    result.v[@as(c_uint, @intCast(@as(c_int, 14)))] = mat.m14;
-    result.v[@as(c_uint, @intCast(@as(c_int, 15)))] = mat.m15;
+    result.v[@as(c_int, 0)] = mat.m0;
+    result.v[@as(c_int, 1)] = mat.m1;
+    result.v[@as(c_int, 2)] = mat.m2;
+    result.v[@as(c_int, 3)] = mat.m3;
+    result.v[@as(c_int, 4)] = mat.m4;
+    result.v[@as(c_int, 5)] = mat.m5;
+    result.v[@as(c_int, 6)] = mat.m6;
+    result.v[@as(c_int, 7)] = mat.m7;
+    result.v[@as(c_int, 8)] = mat.m8;
+    result.v[@as(c_int, 9)] = mat.m9;
+    result.v[@as(c_int, 10)] = mat.m10;
+    result.v[@as(c_int, 11)] = mat.m11;
+    result.v[@as(c_int, 12)] = mat.m12;
+    result.v[@as(c_int, 13)] = mat.m13;
+    result.v[@as(c_int, 14)] = mat.m14;
+    result.v[@as(c_int, 15)] = mat.m15;
     return result;
 }
-pub fn QuaternionAdd(arg_q1: Quaternion, arg_q2: Quaternion) Quaternion {
+pub fn QuaternionAdd(arg_q1: Quaternion, arg_q2: Quaternion) callconv(.c) Quaternion {
     var q1 = arg_q1;
     _ = &q1;
     var q2 = arg_q2;
@@ -2537,7 +2630,7 @@ pub fn QuaternionAdd(arg_q1: Quaternion, arg_q2: Quaternion) Quaternion {
     _ = &result;
     return result;
 }
-pub fn QuaternionAddValue(arg_q: Quaternion, arg_add: f32) Quaternion {
+pub fn QuaternionAddValue(arg_q: Quaternion, arg_add: f32) callconv(.c) Quaternion {
     var q = arg_q;
     _ = &q;
     var add = arg_add;
@@ -2551,7 +2644,7 @@ pub fn QuaternionAddValue(arg_q: Quaternion, arg_add: f32) Quaternion {
     _ = &result;
     return result;
 }
-pub fn QuaternionSubtract(arg_q1: Quaternion, arg_q2: Quaternion) Quaternion {
+pub fn QuaternionSubtract(arg_q1: Quaternion, arg_q2: Quaternion) callconv(.c) Quaternion {
     var q1 = arg_q1;
     _ = &q1;
     var q2 = arg_q2;
@@ -2565,7 +2658,7 @@ pub fn QuaternionSubtract(arg_q1: Quaternion, arg_q2: Quaternion) Quaternion {
     _ = &result;
     return result;
 }
-pub fn QuaternionSubtractValue(arg_q: Quaternion, arg_sub: f32) Quaternion {
+pub fn QuaternionSubtractValue(arg_q: Quaternion, arg_sub: f32) callconv(.c) Quaternion {
     var q = arg_q;
     _ = &q;
     var sub = arg_sub;
@@ -2579,7 +2672,7 @@ pub fn QuaternionSubtractValue(arg_q: Quaternion, arg_sub: f32) Quaternion {
     _ = &result;
     return result;
 }
-pub fn QuaternionIdentity() Quaternion {
+pub fn QuaternionIdentity() callconv(.c) Quaternion {
     var result: Quaternion = Quaternion{
         .x = 0.0,
         .y = 0.0,
@@ -2589,18 +2682,18 @@ pub fn QuaternionIdentity() Quaternion {
     _ = &result;
     return result;
 }
-pub fn QuaternionLength(arg_q: Quaternion) f32 {
+pub fn QuaternionLength(arg_q: Quaternion) callconv(.c) f32 {
     var q = arg_q;
     _ = &q;
     var result: f32 = sqrtf((((q.x * q.x) + (q.y * q.y)) + (q.z * q.z)) + (q.w * q.w));
     _ = &result;
     return result;
 }
-pub fn QuaternionNormalize(arg_q: Quaternion) Quaternion {
+pub fn QuaternionNormalize(arg_q: Quaternion) callconv(.c) Quaternion {
     var q = arg_q;
     _ = &q;
     var result: Quaternion = Quaternion{
-        .x = @as(f32, @floatFromInt(@as(c_int, 0))),
+        .x = @floatFromInt(@as(c_int, 0)),
         .y = 0,
         .z = 0,
         .w = 0,
@@ -2608,10 +2701,10 @@ pub fn QuaternionNormalize(arg_q: Quaternion) Quaternion {
     _ = &result;
     var length: f32 = sqrtf((((q.x * q.x) + (q.y * q.y)) + (q.z * q.z)) + (q.w * q.w));
     _ = &length;
-    if (length == 0.0) {
+    if (length == @as(f32, 0.0)) {
         length = 1.0;
     }
-    var ilength: f32 = 1.0 / length;
+    var ilength: f32 = @as(f32, 1.0) / length;
     _ = &ilength;
     result.x = q.x * ilength;
     result.y = q.y * ilength;
@@ -2619,15 +2712,15 @@ pub fn QuaternionNormalize(arg_q: Quaternion) Quaternion {
     result.w = q.w * ilength;
     return result;
 }
-pub fn QuaternionInvert(arg_q: Quaternion) Quaternion {
+pub fn QuaternionInvert(arg_q: Quaternion) callconv(.c) Quaternion {
     var q = arg_q;
     _ = &q;
     var result: Quaternion = q;
     _ = &result;
     var lengthSq: f32 = (((q.x * q.x) + (q.y * q.y)) + (q.z * q.z)) + (q.w * q.w);
     _ = &lengthSq;
-    if (lengthSq != 0.0) {
-        var invLength: f32 = 1.0 / lengthSq;
+    if (lengthSq != @as(f32, 0.0)) {
+        var invLength: f32 = @as(f32, 1.0) / lengthSq;
         _ = &invLength;
         result.x *= -invLength;
         result.y *= -invLength;
@@ -2636,13 +2729,13 @@ pub fn QuaternionInvert(arg_q: Quaternion) Quaternion {
     }
     return result;
 }
-pub fn QuaternionMultiply(arg_q1: Quaternion, arg_q2: Quaternion) Quaternion {
+pub fn QuaternionMultiply(arg_q1: Quaternion, arg_q2: Quaternion) callconv(.c) Quaternion {
     var q1 = arg_q1;
     _ = &q1;
     var q2 = arg_q2;
     _ = &q2;
     var result: Quaternion = Quaternion{
-        .x = @as(f32, @floatFromInt(@as(c_int, 0))),
+        .x = @floatFromInt(@as(c_int, 0)),
         .y = 0,
         .z = 0,
         .w = 0,
@@ -2670,13 +2763,13 @@ pub fn QuaternionMultiply(arg_q1: Quaternion, arg_q2: Quaternion) Quaternion {
     result.w = (((qaw * qbw) - (qax * qbx)) - (qay * qby)) - (qaz * qbz);
     return result;
 }
-pub fn QuaternionScale(arg_q: Quaternion, arg_mul: f32) Quaternion {
+pub fn QuaternionScale(arg_q: Quaternion, arg_mul: f32) callconv(.c) Quaternion {
     var q = arg_q;
     _ = &q;
     var mul = arg_mul;
     _ = &mul;
     var result: Quaternion = Quaternion{
-        .x = @as(f32, @floatFromInt(@as(c_int, 0))),
+        .x = @floatFromInt(@as(c_int, 0)),
         .y = 0,
         .z = 0,
         .w = 0,
@@ -2688,7 +2781,7 @@ pub fn QuaternionScale(arg_q: Quaternion, arg_mul: f32) Quaternion {
     result.w = q.w * mul;
     return result;
 }
-pub fn QuaternionDivide(arg_q1: Quaternion, arg_q2: Quaternion) Quaternion {
+pub fn QuaternionDivide(arg_q1: Quaternion, arg_q2: Quaternion) callconv(.c) Quaternion {
     var q1 = arg_q1;
     _ = &q1;
     var q2 = arg_q2;
@@ -2702,7 +2795,7 @@ pub fn QuaternionDivide(arg_q1: Quaternion, arg_q2: Quaternion) Quaternion {
     _ = &result;
     return result;
 }
-pub fn QuaternionLerp(arg_q1: Quaternion, arg_q2: Quaternion, arg_amount: f32) Quaternion {
+pub fn QuaternionLerp(arg_q1: Quaternion, arg_q2: Quaternion, arg_amount: f32) callconv(.c) Quaternion {
     var q1 = arg_q1;
     _ = &q1;
     var q2 = arg_q2;
@@ -2710,7 +2803,7 @@ pub fn QuaternionLerp(arg_q1: Quaternion, arg_q2: Quaternion, arg_amount: f32) Q
     var amount = arg_amount;
     _ = &amount;
     var result: Quaternion = Quaternion{
-        .x = @as(f32, @floatFromInt(@as(c_int, 0))),
+        .x = @floatFromInt(@as(c_int, 0)),
         .y = 0,
         .z = 0,
         .w = 0,
@@ -2722,7 +2815,7 @@ pub fn QuaternionLerp(arg_q1: Quaternion, arg_q2: Quaternion, arg_amount: f32) Q
     result.w = q1.w + (amount * (q2.w - q1.w));
     return result;
 }
-pub fn QuaternionNlerp(arg_q1: Quaternion, arg_q2: Quaternion, arg_amount: f32) Quaternion {
+pub fn QuaternionNlerp(arg_q1: Quaternion, arg_q2: Quaternion, arg_amount: f32) callconv(.c) Quaternion {
     var q1 = arg_q1;
     _ = &q1;
     var q2 = arg_q2;
@@ -2730,7 +2823,7 @@ pub fn QuaternionNlerp(arg_q1: Quaternion, arg_q2: Quaternion, arg_amount: f32) 
     var amount = arg_amount;
     _ = &amount;
     var result: Quaternion = Quaternion{
-        .x = @as(f32, @floatFromInt(@as(c_int, 0))),
+        .x = @floatFromInt(@as(c_int, 0)),
         .y = 0,
         .z = 0,
         .w = 0,
@@ -2744,10 +2837,10 @@ pub fn QuaternionNlerp(arg_q1: Quaternion, arg_q2: Quaternion, arg_amount: f32) 
     _ = &q;
     var length: f32 = sqrtf((((q.x * q.x) + (q.y * q.y)) + (q.z * q.z)) + (q.w * q.w));
     _ = &length;
-    if (length == 0.0) {
+    if (length == @as(f32, 0.0)) {
         length = 1.0;
     }
-    var ilength: f32 = 1.0 / length;
+    var ilength: f32 = @as(f32, 1.0) / length;
     _ = &ilength;
     result.x = q.x * ilength;
     result.y = q.y * ilength;
@@ -2755,7 +2848,7 @@ pub fn QuaternionNlerp(arg_q1: Quaternion, arg_q2: Quaternion, arg_amount: f32) 
     result.w = q.w * ilength;
     return result;
 }
-pub fn QuaternionSlerp(arg_q1: Quaternion, arg_q2: Quaternion, arg_amount: f32) Quaternion {
+pub fn QuaternionSlerp(arg_q1: Quaternion, arg_q2: Quaternion, arg_amount: f32) callconv(.c) Quaternion {
     var q1 = arg_q1;
     _ = &q1;
     var q2 = arg_q2;
@@ -2763,7 +2856,7 @@ pub fn QuaternionSlerp(arg_q1: Quaternion, arg_q2: Quaternion, arg_amount: f32) 
     var amount = arg_amount;
     _ = &amount;
     var result: Quaternion = Quaternion{
-        .x = @as(f32, @floatFromInt(@as(c_int, 0))),
+        .x = @floatFromInt(@as(c_int, 0)),
         .y = 0,
         .z = 0,
         .w = 0,
@@ -2778,20 +2871,20 @@ pub fn QuaternionSlerp(arg_q1: Quaternion, arg_q2: Quaternion, arg_amount: f32) 
         q2.w = -q2.w;
         cosHalfTheta = -cosHalfTheta;
     }
-    if (fabsf(cosHalfTheta) >= 1.0) {
+    if (fabsf(cosHalfTheta) >= @as(f32, 1.0)) {
         result = q1;
-    } else if (cosHalfTheta > 0.949999988079071) {
+    } else if (cosHalfTheta > @as(f32, 0.95)) {
         result = QuaternionNlerp(q1, q2, amount);
     } else {
         var halfTheta: f32 = acosf(cosHalfTheta);
         _ = &halfTheta;
-        var sinHalfTheta: f32 = sqrtf(1.0 - (cosHalfTheta * cosHalfTheta));
+        var sinHalfTheta: f32 = sqrtf(@as(f32, 1.0) - (cosHalfTheta * cosHalfTheta));
         _ = &sinHalfTheta;
-        if (fabsf(sinHalfTheta) < 0.0000009999999974752427) {
-            result.x = (q1.x * 0.5) + (q2.x * 0.5);
-            result.y = (q1.y * 0.5) + (q2.y * 0.5);
-            result.z = (q1.z * 0.5) + (q2.z * 0.5);
-            result.w = (q1.w * 0.5) + (q2.w * 0.5);
+        if (fabsf(sinHalfTheta) < EPSILON) {
+            result.x = (q1.x * @as(f32, 0.5)) + (q2.x * @as(f32, 0.5));
+            result.y = (q1.y * @as(f32, 0.5)) + (q2.y * @as(f32, 0.5));
+            result.z = (q1.z * @as(f32, 0.5)) + (q2.z * @as(f32, 0.5));
+            result.w = (q1.w * @as(f32, 0.5)) + (q2.w * @as(f32, 0.5));
         } else {
             var ratioA: f32 = sinf((@as(f32, @floatFromInt(@as(c_int, 1))) - amount) * halfTheta) / sinHalfTheta;
             _ = &ratioA;
@@ -2805,13 +2898,57 @@ pub fn QuaternionSlerp(arg_q1: Quaternion, arg_q2: Quaternion, arg_amount: f32) 
     }
     return result;
 }
-pub fn QuaternionFromVector3ToVector3(arg_from: Vector3, arg_to: Vector3) Quaternion {
+pub fn QuaternionCubicHermiteSpline(arg_q1: Quaternion, arg_outTangent1: Quaternion, arg_q2: Quaternion, arg_inTangent2: Quaternion, arg_t: f32) callconv(.c) Quaternion {
+    var q1 = arg_q1;
+    _ = &q1;
+    var outTangent1 = arg_outTangent1;
+    _ = &outTangent1;
+    var q2 = arg_q2;
+    _ = &q2;
+    var inTangent2 = arg_inTangent2;
+    _ = &inTangent2;
+    var t = arg_t;
+    _ = &t;
+    var t2: f32 = t * t;
+    _ = &t2;
+    var t3: f32 = t2 * t;
+    _ = &t3;
+    var h00: f32 = ((@as(f32, @floatFromInt(@as(c_int, 2))) * t3) - (@as(f32, @floatFromInt(@as(c_int, 3))) * t2)) + @as(f32, @floatFromInt(@as(c_int, 1)));
+    _ = &h00;
+    var h10: f32 = (t3 - (@as(f32, @floatFromInt(@as(c_int, 2))) * t2)) + t;
+    _ = &h10;
+    var h01: f32 = (@as(f32, @floatFromInt(-@as(c_int, 2))) * t3) + (@as(f32, @floatFromInt(@as(c_int, 3))) * t2);
+    _ = &h01;
+    var h11: f32 = t3 - t2;
+    _ = &h11;
+    var p0: Quaternion = QuaternionScale(q1, h00);
+    _ = &p0;
+    var m0: Quaternion = QuaternionScale(outTangent1, h10);
+    _ = &m0;
+    var p1: Quaternion = QuaternionScale(q2, h01);
+    _ = &p1;
+    var m1: Quaternion = QuaternionScale(inTangent2, h11);
+    _ = &m1;
+    var result: Quaternion = Quaternion{
+        .x = @floatFromInt(@as(c_int, 0)),
+        .y = 0,
+        .z = 0,
+        .w = 0,
+    };
+    _ = &result;
+    result = QuaternionAdd(p0, m0);
+    result = QuaternionAdd(result, p1);
+    result = QuaternionAdd(result, m1);
+    result = QuaternionNormalize(result);
+    return result;
+}
+pub fn QuaternionFromVector3ToVector3(arg_from: Vector3, arg_to: Vector3) callconv(.c) Quaternion {
     var from = arg_from;
     _ = &from;
     var to = arg_to;
     _ = &to;
     var result: Quaternion = Quaternion{
-        .x = @as(f32, @floatFromInt(@as(c_int, 0))),
+        .x = @floatFromInt(@as(c_int, 0)),
         .y = 0,
         .z = 0,
         .w = 0,
@@ -2828,15 +2965,15 @@ pub fn QuaternionFromVector3ToVector3(arg_from: Vector3, arg_to: Vector3) Quater
     result.x = cross.x;
     result.y = cross.y;
     result.z = cross.z;
-    result.w = 1.0 + cos2Theta;
+    result.w = sqrtf((((cross.x * cross.x) + (cross.y * cross.y)) + (cross.z * cross.z)) + (cos2Theta * cos2Theta)) + cos2Theta;
     var q: Quaternion = result;
     _ = &q;
     var length: f32 = sqrtf((((q.x * q.x) + (q.y * q.y)) + (q.z * q.z)) + (q.w * q.w));
     _ = &length;
-    if (length == 0.0) {
+    if (length == @as(f32, 0.0)) {
         length = 1.0;
     }
-    var ilength: f32 = 1.0 / length;
+    var ilength: f32 = @as(f32, 1.0) / length;
     _ = &ilength;
     result.x = q.x * ilength;
     result.y = q.y * ilength;
@@ -2844,11 +2981,11 @@ pub fn QuaternionFromVector3ToVector3(arg_from: Vector3, arg_to: Vector3) Quater
     result.w = q.w * ilength;
     return result;
 }
-pub fn QuaternionFromMatrix(arg_mat: Matrix) Quaternion {
+pub fn QuaternionFromMatrix(arg_mat: Matrix) callconv(.c) Quaternion {
     var mat = arg_mat;
     _ = &mat;
     var result: Quaternion = Quaternion{
-        .x = @as(f32, @floatFromInt(@as(c_int, 0))),
+        .x = @floatFromInt(@as(c_int, 0)),
         .y = 0,
         .z = 0,
         .w = 0,
@@ -2878,9 +3015,9 @@ pub fn QuaternionFromMatrix(arg_mat: Matrix) Quaternion {
         fourBiggestSquaredMinus1 = fourZSquaredMinus1;
         biggestIndex = 3;
     }
-    var biggestVal: f32 = sqrtf(fourBiggestSquaredMinus1 + 1.0) * 0.5;
+    var biggestVal: f32 = sqrtf(fourBiggestSquaredMinus1 + @as(f32, 1.0)) * @as(f32, 0.5);
     _ = &biggestVal;
-    var mult: f32 = 0.25 / biggestVal;
+    var mult: f32 = @as(f32, 0.25) / biggestVal;
     _ = &mult;
     while (true) {
         switch (biggestIndex) {
@@ -2918,7 +3055,7 @@ pub fn QuaternionFromMatrix(arg_mat: Matrix) Quaternion {
     }
     return result;
 }
-pub fn QuaternionToMatrix(arg_q: Quaternion) Matrix {
+pub fn QuaternionToMatrix(arg_q: Quaternion) callconv(.c) Matrix {
     var q = arg_q;
     _ = &q;
     var result: Matrix = Matrix{
@@ -2969,7 +3106,7 @@ pub fn QuaternionToMatrix(arg_q: Quaternion) Matrix {
     result.m10 = @as(f32, @floatFromInt(@as(c_int, 1))) - (@as(f32, @floatFromInt(@as(c_int, 2))) * (a2 + b2));
     return result;
 }
-pub fn QuaternionFromAxisAngle(arg_axis: Vector3, arg_angle: f32) Quaternion {
+pub fn QuaternionFromAxisAngle(arg_axis: Vector3, arg_angle: f32) callconv(.c) Quaternion {
     var axis = arg_axis;
     _ = &axis;
     var angle = arg_angle;
@@ -2981,21 +3118,12 @@ pub fn QuaternionFromAxisAngle(arg_axis: Vector3, arg_angle: f32) Quaternion {
         .w = 1.0,
     };
     _ = &result;
-    var axisLength: f32 = sqrtf(((axis.x * axis.x) + (axis.y * axis.y)) + (axis.z * axis.z));
-    _ = &axisLength;
-    if (axisLength != 0.0) {
+    var length: f32 = sqrtf(((axis.x * axis.x) + (axis.y * axis.y)) + (axis.z * axis.z));
+    _ = &length;
+    if (length != @as(f32, 0.0)) {
         angle *= 0.5;
-        var length: f32 = 0.0;
-        _ = &length;
-        var ilength: f32 = 0.0;
+        var ilength: f32 = @as(f32, 1.0) / length;
         _ = &ilength;
-        var v: Vector3 = axis;
-        _ = &v;
-        length = sqrtf(((v.x * v.x) + (v.y * v.y)) + (v.z * v.z));
-        if (length == 0.0) {
-            length = 1.0;
-        }
-        ilength = 1.0 / length;
         axis.x *= ilength;
         axis.y *= ilength;
         axis.z *= ilength;
@@ -3010,10 +3138,10 @@ pub fn QuaternionFromAxisAngle(arg_axis: Vector3, arg_angle: f32) Quaternion {
         var q: Quaternion = result;
         _ = &q;
         length = sqrtf((((q.x * q.x) + (q.y * q.y)) + (q.z * q.z)) + (q.w * q.w));
-        if (length == 0.0) {
+        if (length == @as(f32, 0.0)) {
             length = 1.0;
         }
-        ilength = 1.0 / length;
+        ilength = @as(f32, 1.0) / length;
         result.x = q.x * ilength;
         result.y = q.y * ilength;
         result.z = q.z * ilength;
@@ -3021,20 +3149,20 @@ pub fn QuaternionFromAxisAngle(arg_axis: Vector3, arg_angle: f32) Quaternion {
     }
     return result;
 }
-pub fn QuaternionToAxisAngle(arg_q: Quaternion, arg_outAxis: [*c]Vector3, arg_outAngle: [*c]f32) void {
+pub fn QuaternionToAxisAngle(arg_q: Quaternion, arg_outAxis: [*c]Vector3, arg_outAngle: [*c]f32) callconv(.c) void {
     var q = arg_q;
     _ = &q;
     var outAxis = arg_outAxis;
     _ = &outAxis;
     var outAngle = arg_outAngle;
     _ = &outAngle;
-    if (fabsf(q.w) > 1.0) {
+    if (fabsf(q.w) > @as(f32, 1.0)) {
         var length: f32 = sqrtf((((q.x * q.x) + (q.y * q.y)) + (q.z * q.z)) + (q.w * q.w));
         _ = &length;
-        if (length == 0.0) {
+        if (length == @as(f32, 0.0)) {
             length = 1.0;
         }
-        var ilength: f32 = 1.0 / length;
+        var ilength: f32 = @as(f32, 1.0) / length;
         _ = &ilength;
         q.x = q.x * ilength;
         q.y = q.y * ilength;
@@ -3047,11 +3175,11 @@ pub fn QuaternionToAxisAngle(arg_q: Quaternion, arg_outAxis: [*c]Vector3, arg_ou
         .z = 0.0,
     };
     _ = &resAxis;
-    var resAngle: f32 = 2.0 * acosf(q.w);
+    var resAngle: f32 = @as(f32, 2.0) * acosf(q.w);
     _ = &resAngle;
-    var den: f32 = sqrtf(1.0 - (q.w * q.w));
+    var den: f32 = sqrtf(@as(f32, 1.0) - (q.w * q.w));
     _ = &den;
-    if (den > 0.0000009999999974752427) {
+    if (den > EPSILON) {
         resAxis.x = q.x / den;
         resAxis.y = q.y / den;
         resAxis.z = q.z / den;
@@ -3061,7 +3189,7 @@ pub fn QuaternionToAxisAngle(arg_q: Quaternion, arg_outAxis: [*c]Vector3, arg_ou
     outAxis.* = resAxis;
     outAngle.* = resAngle;
 }
-pub fn QuaternionFromEuler(arg_pitch: f32, arg_yaw: f32, arg_roll: f32) Quaternion {
+pub fn QuaternionFromEuler(arg_pitch: f32, arg_yaw: f32, arg_roll: f32) callconv(.c) Quaternion {
     var pitch = arg_pitch;
     _ = &pitch;
     var yaw = arg_yaw;
@@ -3069,23 +3197,23 @@ pub fn QuaternionFromEuler(arg_pitch: f32, arg_yaw: f32, arg_roll: f32) Quaterni
     var roll = arg_roll;
     _ = &roll;
     var result: Quaternion = Quaternion{
-        .x = @as(f32, @floatFromInt(@as(c_int, 0))),
+        .x = @floatFromInt(@as(c_int, 0)),
         .y = 0,
         .z = 0,
         .w = 0,
     };
     _ = &result;
-    var x0: f32 = cosf(pitch * 0.5);
+    var x0: f32 = cosf(pitch * @as(f32, 0.5));
     _ = &x0;
-    var x1: f32 = sinf(pitch * 0.5);
+    var x1: f32 = sinf(pitch * @as(f32, 0.5));
     _ = &x1;
-    var y0_1: f32 = cosf(yaw * 0.5);
+    var y0_1: f32 = cosf(yaw * @as(f32, 0.5));
     _ = &y0_1;
-    var y1_2: f32 = sinf(yaw * 0.5);
+    var y1_2: f32 = sinf(yaw * @as(f32, 0.5));
     _ = &y1_2;
-    var z0: f32 = cosf(roll * 0.5);
+    var z0: f32 = cosf(roll * @as(f32, 0.5));
     _ = &z0;
-    var z1: f32 = sinf(roll * 0.5);
+    var z1: f32 = sinf(roll * @as(f32, 0.5));
     _ = &z1;
     result.x = ((x1 * y0_1) * z0) - ((x0 * y1_2) * z1);
     result.y = ((x0 * y1_2) * z0) + ((x1 * y0_1) * z1);
@@ -3093,39 +3221,39 @@ pub fn QuaternionFromEuler(arg_pitch: f32, arg_yaw: f32, arg_roll: f32) Quaterni
     result.w = ((x0 * y0_1) * z0) + ((x1 * y1_2) * z1);
     return result;
 }
-pub fn QuaternionToEuler(arg_q: Quaternion) Vector3 {
+pub fn QuaternionToEuler(arg_q: Quaternion) callconv(.c) Vector3 {
     var q = arg_q;
     _ = &q;
     var result: Vector3 = Vector3{
-        .x = @as(f32, @floatFromInt(@as(c_int, 0))),
+        .x = @floatFromInt(@as(c_int, 0)),
         .y = 0,
         .z = 0,
     };
     _ = &result;
-    var x0: f32 = 2.0 * ((q.w * q.x) + (q.y * q.z));
+    var x0: f32 = @as(f32, 2.0) * ((q.w * q.x) + (q.y * q.z));
     _ = &x0;
-    var x1: f32 = 1.0 - (2.0 * ((q.x * q.x) + (q.y * q.y)));
+    var x1: f32 = @as(f32, 1.0) - (@as(f32, 2.0) * ((q.x * q.x) + (q.y * q.y)));
     _ = &x1;
     result.x = atan2f(x0, x1);
-    var y0_1: f32 = 2.0 * ((q.w * q.y) - (q.z * q.x));
+    var y0_1: f32 = @as(f32, 2.0) * ((q.w * q.y) - (q.z * q.x));
     _ = &y0_1;
-    y0_1 = if (y0_1 > 1.0) 1.0 else y0_1;
-    y0_1 = if (y0_1 < -1.0) -1.0 else y0_1;
+    y0_1 = if (y0_1 > @as(f32, 1.0)) @as(f32, 1.0) else y0_1;
+    y0_1 = if (y0_1 < -@as(f32, 1.0)) -@as(f32, 1.0) else y0_1;
     result.y = asinf(y0_1);
-    var z0: f32 = 2.0 * ((q.w * q.z) + (q.x * q.y));
+    var z0: f32 = @as(f32, 2.0) * ((q.w * q.z) + (q.x * q.y));
     _ = &z0;
-    var z1: f32 = 1.0 - (2.0 * ((q.y * q.y) + (q.z * q.z)));
+    var z1: f32 = @as(f32, 1.0) - (@as(f32, 2.0) * ((q.y * q.y) + (q.z * q.z)));
     _ = &z1;
     result.z = atan2f(z0, z1);
     return result;
 }
-pub fn QuaternionTransform(arg_q: Quaternion, arg_mat: Matrix) Quaternion {
+pub fn QuaternionTransform(arg_q: Quaternion, arg_mat: Matrix) callconv(.c) Quaternion {
     var q = arg_q;
     _ = &q;
     var mat = arg_mat;
     _ = &mat;
     var result: Quaternion = Quaternion{
-        .x = @as(f32, @floatFromInt(@as(c_int, 0))),
+        .x = @floatFromInt(@as(c_int, 0)),
         .y = 0,
         .z = 0,
         .w = 0,
@@ -3137,34 +3265,181 @@ pub fn QuaternionTransform(arg_q: Quaternion, arg_mat: Matrix) Quaternion {
     result.w = (((mat.m3 * q.x) + (mat.m7 * q.y)) + (mat.m11 * q.z)) + (mat.m15 * q.w);
     return result;
 }
-pub fn QuaternionEquals(arg_p: Quaternion, arg_q: Quaternion) c_int {
+pub fn QuaternionEquals(arg_p: Quaternion, arg_q: Quaternion) callconv(.c) c_int {
     var p = arg_p;
     _ = &p;
     var q = arg_q;
     _ = &q;
-    var result: c_int = @intFromBool(((((fabsf(p.x - q.x) <= (0.0000009999999974752427 * fmaxf(1.0, fmaxf(fabsf(p.x), fabsf(q.x))))) and (fabsf(p.y - q.y) <= (0.0000009999999974752427 * fmaxf(1.0, fmaxf(fabsf(p.y), fabsf(q.y)))))) and (fabsf(p.z - q.z) <= (0.0000009999999974752427 * fmaxf(1.0, fmaxf(fabsf(p.z), fabsf(q.z)))))) and (fabsf(p.w - q.w) <= (0.0000009999999974752427 * fmaxf(1.0, fmaxf(fabsf(p.w), fabsf(q.w)))))) or ((((fabsf(p.x + q.x) <= (0.0000009999999974752427 * fmaxf(1.0, fmaxf(fabsf(p.x), fabsf(q.x))))) and (fabsf(p.y + q.y) <= (0.0000009999999974752427 * fmaxf(1.0, fmaxf(fabsf(p.y), fabsf(q.y)))))) and (fabsf(p.z + q.z) <= (0.0000009999999974752427 * fmaxf(1.0, fmaxf(fabsf(p.z), fabsf(q.z)))))) and (fabsf(p.w + q.w) <= (0.0000009999999974752427 * fmaxf(1.0, fmaxf(fabsf(p.w), fabsf(q.w)))))));
+    var result: c_int = @intFromBool(((((fabsf(p.x - q.x) <= (EPSILON * fmaxf(1.0, fmaxf(fabsf(p.x), fabsf(q.x))))) and (fabsf(p.y - q.y) <= (EPSILON * fmaxf(1.0, fmaxf(fabsf(p.y), fabsf(q.y)))))) and (fabsf(p.z - q.z) <= (EPSILON * fmaxf(1.0, fmaxf(fabsf(p.z), fabsf(q.z)))))) and (fabsf(p.w - q.w) <= (EPSILON * fmaxf(1.0, fmaxf(fabsf(p.w), fabsf(q.w)))))) or ((((fabsf(p.x + q.x) <= (EPSILON * fmaxf(1.0, fmaxf(fabsf(p.x), fabsf(q.x))))) and (fabsf(p.y + q.y) <= (EPSILON * fmaxf(1.0, fmaxf(fabsf(p.y), fabsf(q.y)))))) and (fabsf(p.z + q.z) <= (EPSILON * fmaxf(1.0, fmaxf(fabsf(p.z), fabsf(q.z)))))) and (fabsf(p.w + q.w) <= (EPSILON * fmaxf(1.0, fmaxf(fabsf(p.w), fabsf(q.w)))))));
     _ = &result;
     return result;
 }
-
-pub const struct_float3 = extern struct {
-    v: [3]f32 = @import("std").mem.zeroes([3]f32),
-};
-pub const float3 = struct_float3;
-pub const struct_float16 = extern struct {
-    v: [16]f32 = @import("std").mem.zeroes([16]f32),
-};
-pub const float16 = struct_float16;
-
-pub extern fn floorf(__x: f32) f32;
-pub extern fn fabsf(__x: f32) f32;
-pub extern fn fmaxf(__x: f32, __y: f32) f32;
-pub extern fn atan2f(__y: f32, __x: f32) f32;
-pub extern fn fminf(__x: f32, __y: f32) f32;
-pub extern fn cosf(__x: f32) f32;
-pub extern fn sinf(__x: f32) f32;
-pub extern fn tanf(__x: f32) f32;
-pub extern fn sqrtf(__x: f32) f32;
-pub extern fn tan(__x: f64) f64;
-pub extern fn acosf(__x: f32) f32;
-pub extern fn asinf(__x: f32) f32;
+pub fn MatrixCompose(arg_translation: Vector3, arg_rotation: Quaternion, arg_scale: Vector3) callconv(.c) Matrix {
+    var translation = arg_translation;
+    _ = &translation;
+    var rotation = arg_rotation;
+    _ = &rotation;
+    var scale = arg_scale;
+    _ = &scale;
+    var right: Vector3 = Vector3{
+        .x = 1.0,
+        .y = 0.0,
+        .z = 0.0,
+    };
+    _ = &right;
+    var up: Vector3 = Vector3{
+        .x = 0.0,
+        .y = 1.0,
+        .z = 0.0,
+    };
+    _ = &up;
+    var forward: Vector3 = Vector3{
+        .x = 0.0,
+        .y = 0.0,
+        .z = 1.0,
+    };
+    _ = &forward;
+    right.x *= scale.x;
+    right.y *= scale.x;
+    right.z *= scale.x;
+    up.x *= scale.y;
+    up.y *= scale.y;
+    up.z *= scale.y;
+    forward.x *= scale.z;
+    forward.y *= scale.z;
+    forward.z *= scale.z;
+    right.x = ((right.x * ((((rotation.x * rotation.x) + (rotation.w * rotation.w)) - (rotation.y * rotation.y)) - (rotation.z * rotation.z))) + (right.y * (((@as(f32, @floatFromInt(@as(c_int, 2))) * rotation.x) * rotation.y) - ((@as(f32, @floatFromInt(@as(c_int, 2))) * rotation.w) * rotation.z)))) + (right.z * (((@as(f32, @floatFromInt(@as(c_int, 2))) * rotation.x) * rotation.z) + ((@as(f32, @floatFromInt(@as(c_int, 2))) * rotation.w) * rotation.y)));
+    right.y = ((right.x * (((@as(f32, @floatFromInt(@as(c_int, 2))) * rotation.w) * rotation.z) + ((@as(f32, @floatFromInt(@as(c_int, 2))) * rotation.x) * rotation.y))) + (right.y * ((((rotation.w * rotation.w) - (rotation.x * rotation.x)) + (rotation.y * rotation.y)) - (rotation.z * rotation.z)))) + (right.z * (((@as(f32, @floatFromInt(-@as(c_int, 2))) * rotation.w) * rotation.x) + ((@as(f32, @floatFromInt(@as(c_int, 2))) * rotation.y) * rotation.z)));
+    right.z = ((right.x * (((@as(f32, @floatFromInt(-@as(c_int, 2))) * rotation.w) * rotation.y) + ((@as(f32, @floatFromInt(@as(c_int, 2))) * rotation.x) * rotation.z))) + (right.y * (((@as(f32, @floatFromInt(@as(c_int, 2))) * rotation.w) * rotation.x) + ((@as(f32, @floatFromInt(@as(c_int, 2))) * rotation.y) * rotation.z)))) + (right.z * ((((rotation.w * rotation.w) - (rotation.x * rotation.x)) - (rotation.y * rotation.y)) + (rotation.z * rotation.z)));
+    up.x = ((up.x * ((((rotation.x * rotation.x) + (rotation.w * rotation.w)) - (rotation.y * rotation.y)) - (rotation.z * rotation.z))) + (up.y * (((@as(f32, @floatFromInt(@as(c_int, 2))) * rotation.x) * rotation.y) - ((@as(f32, @floatFromInt(@as(c_int, 2))) * rotation.w) * rotation.z)))) + (up.z * (((@as(f32, @floatFromInt(@as(c_int, 2))) * rotation.x) * rotation.z) + ((@as(f32, @floatFromInt(@as(c_int, 2))) * rotation.w) * rotation.y)));
+    up.y = ((up.x * (((@as(f32, @floatFromInt(@as(c_int, 2))) * rotation.w) * rotation.z) + ((@as(f32, @floatFromInt(@as(c_int, 2))) * rotation.x) * rotation.y))) + (up.y * ((((rotation.w * rotation.w) - (rotation.x * rotation.x)) + (rotation.y * rotation.y)) - (rotation.z * rotation.z)))) + (up.z * (((@as(f32, @floatFromInt(-@as(c_int, 2))) * rotation.w) * rotation.x) + ((@as(f32, @floatFromInt(@as(c_int, 2))) * rotation.y) * rotation.z)));
+    up.z = ((up.x * (((@as(f32, @floatFromInt(-@as(c_int, 2))) * rotation.w) * rotation.y) + ((@as(f32, @floatFromInt(@as(c_int, 2))) * rotation.x) * rotation.z))) + (up.y * (((@as(f32, @floatFromInt(@as(c_int, 2))) * rotation.w) * rotation.x) + ((@as(f32, @floatFromInt(@as(c_int, 2))) * rotation.y) * rotation.z)))) + (up.z * ((((rotation.w * rotation.w) - (rotation.x * rotation.x)) - (rotation.y * rotation.y)) + (rotation.z * rotation.z)));
+    forward.x = ((forward.x * ((((rotation.x * rotation.x) + (rotation.w * rotation.w)) - (rotation.y * rotation.y)) - (rotation.z * rotation.z))) + (forward.y * (((@as(f32, @floatFromInt(@as(c_int, 2))) * rotation.x) * rotation.y) - ((@as(f32, @floatFromInt(@as(c_int, 2))) * rotation.w) * rotation.z)))) + (forward.z * (((@as(f32, @floatFromInt(@as(c_int, 2))) * rotation.x) * rotation.z) + ((@as(f32, @floatFromInt(@as(c_int, 2))) * rotation.w) * rotation.y)));
+    forward.y = ((forward.x * (((@as(f32, @floatFromInt(@as(c_int, 2))) * rotation.w) * rotation.z) + ((@as(f32, @floatFromInt(@as(c_int, 2))) * rotation.x) * rotation.y))) + (forward.y * ((((rotation.w * rotation.w) - (rotation.x * rotation.x)) + (rotation.y * rotation.y)) - (rotation.z * rotation.z)))) + (forward.z * (((@as(f32, @floatFromInt(-@as(c_int, 2))) * rotation.w) * rotation.x) + ((@as(f32, @floatFromInt(@as(c_int, 2))) * rotation.y) * rotation.z)));
+    forward.z = ((forward.x * (((@as(f32, @floatFromInt(-@as(c_int, 2))) * rotation.w) * rotation.y) + ((@as(f32, @floatFromInt(@as(c_int, 2))) * rotation.x) * rotation.z))) + (forward.y * (((@as(f32, @floatFromInt(@as(c_int, 2))) * rotation.w) * rotation.x) + ((@as(f32, @floatFromInt(@as(c_int, 2))) * rotation.y) * rotation.z)))) + (forward.z * ((((rotation.w * rotation.w) - (rotation.x * rotation.x)) - (rotation.y * rotation.y)) + (rotation.z * rotation.z)));
+    var result: Matrix = Matrix{
+        .m0 = right.x,
+        .m4 = up.x,
+        .m8 = forward.x,
+        .m12 = translation.x,
+        .m1 = right.y,
+        .m5 = up.y,
+        .m9 = forward.y,
+        .m13 = translation.y,
+        .m2 = right.z,
+        .m6 = up.z,
+        .m10 = forward.z,
+        .m14 = translation.z,
+        .m3 = 0.0,
+        .m7 = 0.0,
+        .m11 = 0.0,
+        .m15 = 1.0,
+    };
+    _ = &result;
+    return result;
+}
+pub fn MatrixDecompose(arg_mat: Matrix, arg_translation: [*c]Vector3, arg_rotation: [*c]Quaternion, arg_scale: [*c]Vector3) callconv(.c) void {
+    var mat = arg_mat;
+    _ = &mat;
+    var translation = arg_translation;
+    _ = &translation;
+    var rotation = arg_rotation;
+    _ = &rotation;
+    var scale = arg_scale;
+    _ = &scale;
+    var eps: f32 = @floatCast(@as(f64, 0.000000001));
+    _ = &eps;
+    translation.*.x = mat.m12;
+    translation.*.y = mat.m13;
+    translation.*.z = mat.m14;
+    var matColumns: [3]Vector3 = [3]Vector3{
+        Vector3{
+            .x = mat.m0,
+            .y = mat.m4,
+            .z = mat.m8,
+        },
+        Vector3{
+            .x = mat.m1,
+            .y = mat.m5,
+            .z = mat.m9,
+        },
+        Vector3{
+            .x = mat.m2,
+            .y = mat.m6,
+            .z = mat.m10,
+        },
+    };
+    _ = &matColumns;
+    var shear: [3]f32 = [1]f32{
+        @floatFromInt(@as(c_int, 0)),
+    } ++ @as([2]f32, @splat(0));
+    _ = &shear;
+    var scl: Vector3 = Vector3{
+        .x = @floatFromInt(@as(c_int, 0)),
+        .y = 0,
+        .z = 0,
+    };
+    _ = &scl;
+    var stabilizer: f32 = eps;
+    _ = &stabilizer;
+    {
+        var i: c_int = 0;
+        _ = &i;
+        while (i < @as(c_int, 3)) : (i += 1) {
+            stabilizer = fmaxf(stabilizer, fabsf(matColumns[@bitCast(@as(isize, @intCast(i)))].x));
+            stabilizer = fmaxf(stabilizer, fabsf(matColumns[@bitCast(@as(isize, @intCast(i)))].y));
+            stabilizer = fmaxf(stabilizer, fabsf(matColumns[@bitCast(@as(isize, @intCast(i)))].z));
+        }
+    }
+    matColumns[@as(c_int, 0)] = Vector3Scale(matColumns[@as(c_int, 0)], @as(f32, 1.0) / stabilizer);
+    matColumns[@as(c_int, 1)] = Vector3Scale(matColumns[@as(c_int, 1)], @as(f32, 1.0) / stabilizer);
+    matColumns[@as(c_int, 2)] = Vector3Scale(matColumns[@as(c_int, 2)], @as(f32, 1.0) / stabilizer);
+    scl.x = Vector3Length(matColumns[@as(c_int, 0)]);
+    if (scl.x > eps) {
+        matColumns[@as(c_int, 0)] = Vector3Scale(matColumns[@as(c_int, 0)], @as(f32, 1.0) / scl.x);
+    }
+    shear[@as(c_int, 0)] = Vector3DotProduct(matColumns[@as(c_int, 0)], matColumns[@as(c_int, 1)]);
+    matColumns[@as(c_int, 1)] = Vector3Subtract(matColumns[@as(c_int, 1)], Vector3Scale(matColumns[@as(c_int, 0)], shear[@as(c_int, 0)]));
+    scl.y = Vector3Length(matColumns[@as(c_int, 1)]);
+    if (scl.y > eps) {
+        matColumns[@as(c_int, 1)] = Vector3Scale(matColumns[@as(c_int, 1)], @as(f32, 1.0) / scl.y);
+        shear[@as(c_int, 0)] /= scl.y;
+    }
+    shear[@as(c_int, 1)] = Vector3DotProduct(matColumns[@as(c_int, 0)], matColumns[@as(c_int, 2)]);
+    matColumns[@as(c_int, 2)] = Vector3Subtract(matColumns[@as(c_int, 2)], Vector3Scale(matColumns[@as(c_int, 0)], shear[@as(c_int, 1)]));
+    shear[@as(c_int, 2)] = Vector3DotProduct(matColumns[@as(c_int, 1)], matColumns[@as(c_int, 2)]);
+    matColumns[@as(c_int, 2)] = Vector3Subtract(matColumns[@as(c_int, 2)], Vector3Scale(matColumns[@as(c_int, 1)], shear[@as(c_int, 2)]));
+    scl.z = Vector3Length(matColumns[@as(c_int, 2)]);
+    if (scl.z > eps) {
+        matColumns[@as(c_int, 2)] = Vector3Scale(matColumns[@as(c_int, 2)], @as(f32, 1.0) / scl.z);
+        shear[@as(c_int, 1)] /= scl.z;
+        shear[@as(c_int, 2)] /= scl.z;
+    }
+    if (Vector3DotProduct(matColumns[@as(c_int, 0)], Vector3CrossProduct(matColumns[@as(c_int, 1)], matColumns[@as(c_int, 2)])) < @as(f32, @floatFromInt(@as(c_int, 0)))) {
+        scl = Vector3Negate(scl);
+        matColumns[@as(c_int, 0)] = Vector3Negate(matColumns[@as(c_int, 0)]);
+        matColumns[@as(c_int, 1)] = Vector3Negate(matColumns[@as(c_int, 1)]);
+        matColumns[@as(c_int, 2)] = Vector3Negate(matColumns[@as(c_int, 2)]);
+    }
+    scale.* = Vector3Scale(scl, stabilizer);
+    var rotationMatrix: Matrix = Matrix{
+        .m0 = matColumns[@as(c_int, 0)].x,
+        .m4 = matColumns[@as(c_int, 0)].y,
+        .m8 = matColumns[@as(c_int, 0)].z,
+        .m12 = @floatFromInt(@as(c_int, 0)),
+        .m1 = matColumns[@as(c_int, 1)].x,
+        .m5 = matColumns[@as(c_int, 1)].y,
+        .m9 = matColumns[@as(c_int, 1)].z,
+        .m13 = @floatFromInt(@as(c_int, 0)),
+        .m2 = matColumns[@as(c_int, 2)].x,
+        .m6 = matColumns[@as(c_int, 2)].y,
+        .m10 = matColumns[@as(c_int, 2)].z,
+        .m14 = @floatFromInt(@as(c_int, 0)),
+        .m3 = @floatFromInt(@as(c_int, 0)),
+        .m7 = @floatFromInt(@as(c_int, 0)),
+        .m11 = @floatFromInt(@as(c_int, 0)),
+        .m15 = @floatFromInt(@as(c_int, 1)),
+    };
+    _ = &rotationMatrix;
+    rotation.* = QuaternionFromMatrix(rotationMatrix);
+}

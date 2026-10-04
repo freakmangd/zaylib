@@ -28,7 +28,8 @@ comptime {
             if (std.ascii.isUpper(decl.name[0]) and // horrible workaround for @compileError decls
                 std.ascii.isLower(decl.name[1]) and
                 @typeInfo(@TypeOf(@field(c, decl.name))) == .@"fn" and
-                !@hasDecl(@This(), decl.name)) missing_decls = missing_decls ++ decl.name ++ "\n";
+                !@hasDecl(@This(), decl.name) and
+                !@hasDecl(rm, decl.name)) missing_decls = missing_decls ++ decl.name ++ "\n";
         }
         if (missing_decls.len > "MISSING DECLS: ".len) {
             @compileError(missing_decls);
@@ -76,29 +77,27 @@ fn checkStructDecl(decl: std.builtin.Type.Declaration) void {
     const CDecl_info = @typeInfo(CDecl).@"struct";
 
     if (ThisDecl_info.fields.len != CDecl_info.fields.len) {
-        @compileError(
-            std.fmt.comptimePrint("Mismatched fields len for type {s}. Expected {} found {}", .{
-                decl.name,
-                CDecl_info.fields.len,
-                ThisDecl_info.fields.len,
-            }),
-        );
+        fail("Mismatched fields len for type {s}. Expected {} found {}", .{
+            decl.name,
+            CDecl_info.fields.len,
+            ThisDecl_info.fields.len,
+        });
     }
 
     for (ThisDecl_info.fields) |this_field| {
+        @setEvalBranchQuota(20000);
+
         const this_field_info = @typeInfo(this_field.type);
         const c_field = @FieldType(CDecl, this_field.name);
         const c_field_info = @typeInfo(c_field);
 
         if (@offsetOf(ThisDecl, this_field.name) != @offsetOf(CDecl, this_field.name)) {
-            @compileError(
-                std.fmt.comptimePrint("Mismatched field offset `{s}` for type `{s}`. Expected {} found {}", .{
-                    c_field.name,
-                    decl.name,
-                    @offsetOf(CDecl, c_field.name),
-                    @offsetOf(ThisDecl, this_field.name),
-                }),
-            );
+            fail("Mismatched field offset `{s}` for type `{s}`. Expected {} found {}", .{
+                c_field.name,
+                decl.name,
+                @offsetOf(CDecl, c_field.name),
+                @offsetOf(ThisDecl, this_field.name),
+            });
         }
 
         if (this_field.type != c_field) bad_field_type: {
@@ -113,9 +112,9 @@ fn checkStructDecl(decl: std.builtin.Type.Declaration) void {
             }
 
             fail("Mismatched field type `{s}` for type `{s}`. Expected {} found {}", .{
-                c_field.name,
+                this_field.name,
                 decl.name,
-                c_field.type,
+                c_field,
                 this_field.type,
             });
         }
@@ -297,8 +296,17 @@ pub const Vector2 = extern struct {
         return .init(@floor(self.x), @floor(self.y));
     }
 
+    pub fn round(self: Vector2) Vector2 {
+        return .init(@round(self.x), @round(self.y));
+    }
+
     pub fn toRectangle(self: Vector2, width: f32, height: f32) Rectangle {
         return .{ .x = self.x, .y = self.y, .width = width, .height = height };
+    }
+
+    /// returns a Rectangle with width = x, and height = y
+    pub fn asSize(self: Vector2) Rectangle {
+        return .{ .width = self.x, .height = self.y };
     }
 
     pub fn format(value: Vector2, writer: *std.Io.Writer) !void {
@@ -401,6 +409,7 @@ pub const Vector3 = extern struct {
     pub const barycenter = rm.Vector3Barycenter;
     pub const unproject = rm.Vector3Unproject;
     pub const toFloatV = rm.Vector3ToFloatV;
+    pub const toFloat = rm.Vector3ToFloat;
 };
 
 pub const Vector4 = extern struct {
@@ -481,6 +490,7 @@ pub const Vector4 = extern struct {
     pub const quatLerp = rm.QuaternionLerp;
     pub const quatNlerp = rm.QuaternionNlerp;
     pub const quatSlerp = rm.QuaternionSlerp;
+    pub const quatCubicHermiteSpline = rm.QuaternionCubicHermiteSpline;
     pub const quatFromVector3ToVector3 = rm.QuaternionFromVector3ToVector3;
     pub const quatFromMatrix = rm.QuaternionFromMatrix;
     pub const quatToMatrix = rm.QuaternionToMatrix;
@@ -579,6 +589,10 @@ pub const Rectangle = extern struct {
 
     pub fn floor(self: Rectangle) Rectangle {
         return .init(@floor(self.x), @floor(self.y), @floor(self.width), @floor(self.height));
+    }
+
+    pub fn round(self: Rectangle) Rectangle {
+        return .init(@round(self.x), @round(self.y), @round(self.width), @round(self.height));
     }
 
     pub fn format(self: @This(), writer: *std.Io.Writer) !void {
@@ -749,7 +763,7 @@ pub const Image = extern struct {
     pub const drawRectangleV = ImageDrawRectangleV;
     pub const drawRectangleRec = ImageDrawRectangleRec;
     pub const drawRectangleLines = ImageDrawRectangleLines;
-    pub const draw = ImageDraw;
+    pub const draw = ImageDrawImage;
     pub const drawText = ImageDrawText;
     pub const drawTextEx = ImageDrawTextEx;
 };
@@ -762,14 +776,33 @@ pub const Matrix = extern struct {
     m3: f32 = 0, m7: f32 = 0, m11: f32 = 0, m15: f32 = 0,
     // zig fmt: on
 
+    pub const identity: Matrix = .{
+        .m0 = 1.0,
+        .m4 = 0.0,
+        .m8 = 0.0,
+        .m12 = 0.0,
+        .m1 = 0.0,
+        .m5 = 1.0,
+        .m9 = 0.0,
+        .m13 = 0.0,
+        .m2 = 0.0,
+        .m6 = 0.0,
+        .m10 = 1.0,
+        .m14 = 0.0,
+        .m3 = 0.0,
+        .m7 = 0.0,
+        .m11 = 0.0,
+        .m15 = 1.0,
+    };
+
     pub const determinant = rm.MatrixDeterminant;
     pub const trace = rm.MatrixTrace;
     pub const transpose = rm.MatrixTranspose;
     pub const invert = rm.MatrixInvert;
-    pub const identity = rm.MatrixIdentity();
     pub const add = rm.MatrixAdd;
     pub const subtract = rm.MatrixSubtract;
     pub const multiply = rm.MatrixMultiply;
+    pub const multiplyValue = rm.MatrixMultiplyValue;
     pub const translate = rm.MatrixTranslate;
     pub const rotate = rm.MatrixRotate;
     pub const rotateX = rm.MatrixRotateX;
@@ -783,6 +816,9 @@ pub const Matrix = extern struct {
     pub const ortho = rm.MatrixOrtho;
     pub const lookAt = rm.MatrixLookAt;
     pub const toFloatV = rm.MatrixToFloatV;
+    pub const toFloat = rm.MatrixToFloat;
+    pub const compose = rm.MatrixCompose;
+    pub const decompose = rm.MatrixDecompose;
 };
 
 pub const RenderTexture = extern struct {
@@ -854,7 +890,7 @@ pub const Camera2D = extern struct {
     pub fn getWorldToScreen(camera: Camera2D, position: Vector2) Vector2 {
         return GetWorldToScreen2D(position, camera);
     }
-    pub fn getScreenToWorld(position: Vector2, camera: Camera2D) Vector2 {
+    pub fn getScreenToWorld(camera: Camera2D, position: Vector2) Vector2 {
         return GetScreenToWorld2D(position, camera);
     }
 };
@@ -939,7 +975,8 @@ pub const Material = extern struct {
     maps: [*c]MaterialMap = null,
     params: [4]f32 = @splat(0),
 
-    pub const unload = UnloadMaterial;
+    pub const deinit = UnloadMaterial;
+    pub const isValid = IsMaterialValid;
 
     pub fn map(self: Material, idx: MaterialMapIndex) MaterialMap {
         return self.maps[idx.uint()];
@@ -968,7 +1005,7 @@ pub const BoneInfo = extern struct {
 pub const ModelAnimPose = [*c]Transform;
 
 pub const ModelSkeleton = extern struct {
-    boneCount: c_int = 0,
+    boneCount: c_uint = 0,
     bones: [*c]BoneInfo = null,
     bindPose: ModelAnimPose = null,
 };
@@ -993,11 +1030,14 @@ pub const Model = extern struct {
     pub const drawEx = DrawModelEx;
     pub const drawWires = DrawModelWires;
     pub const drawWiresEx = DrawModelWiresEx;
+    pub const updateAnimation = UpdateModelAnimation;
+    pub const updateAnimationEx = UpdateModelAnimationEx;
+    pub const isAnimationValid = IsModelAnimationValid;
 };
 
 pub const ModelAnimation = extern struct {
     name: [32]u8 = @import("std").mem.zeroes([32]u8),
-    boneCount: c_int = 0,
+    boneCount: c_uint = 0,
     keyframeCount: c_int = 0,
     keyframePoses: [*c]ModelAnimPose = null,
 };
@@ -1005,6 +1045,15 @@ pub const ModelAnimation = extern struct {
 pub const Ray = extern struct {
     position: Vector3 = .{},
     direction: Vector3 = .{},
+
+    pub const fromMouse = GetMouseRay;
+    pub const screenToWorld = GetScreenToWorldRay;
+    pub const screenToWorldEx = GetScreenToWorldRayEx;
+    pub const collisionBox = GetRayCollisionBox;
+    pub const collisionMesh = GetRayCollisionMesh;
+    pub const collisionQuad = GetRayCollisionQuad;
+    pub const collisionSphere = GetRayCollisionSphere;
+    pub const collisionTriangle = GetRayCollisionTriangle;
 };
 
 pub const RayCollision = extern struct {
@@ -1012,11 +1061,19 @@ pub const RayCollision = extern struct {
     distance: f32 = 0,
     point: Vector3 = .{},
     normal: Vector3 = .{},
+
+    pub const fromBox = GetRayCollisionBox;
+    pub const fromMesh = GetRayCollisionMesh;
+    pub const fromQuad = GetRayCollisionQuad;
+    pub const fromSphere = GetRayCollisionSphere;
+    pub const fromTriangle = GetRayCollisionTriangle;
 };
 
 pub const BoundingBox = extern struct {
     min: Vector3 = .{},
     max: Vector3 = .{},
+
+    pub const draw = DrawBoundingBox;
 };
 
 pub const Wave = extern struct {
@@ -2070,6 +2127,9 @@ pub fn GetScreenWidthF() f32 {
 pub fn GetScreenHeightF() f32 {
     return @floatFromInt(GetScreenHeight());
 }
+pub fn GetScreenSize() Vector2 {
+    return .init(GetScreenWidthF(), GetScreenHeightF());
+}
 pub fn LoadRandomSequenceSlice(count: c_uint, min: c_int, max: c_int) []c_int {
     return LoadRandomSequence(count, min, max)[0..count];
 }
@@ -2092,6 +2152,13 @@ pub fn UnloadFileTextSlice(text: []u8) void {
     UnloadFileText(text.ptr);
 }
 pub const GetMouseRay = GetScreenToWorldRay;
+pub fn LoadWaveSamplesSlice(wave: Wave) []f32 {
+    const ptr = LoadWaveSamples(wave);
+    return ptr[0 .. wave.frameCount * wave.channels];
+}
+pub fn UnloadWaveSamplesSlice(samples: []f32) void {
+    UnloadWaveSamples(samples.ptr);
+}
 
 // tweaked c-import generations
 
@@ -2173,8 +2240,22 @@ pub extern fn GenImageText(width: c_int, height: c_int, text: [*:0]const u8) Ima
 pub extern fn ImageCopy(image: Image) Image;
 pub extern fn ImageFromImage(image: Image, rec: Rectangle) Image;
 pub extern fn LoadFontEx(fileName: [*:0]const u8, fontSize: c_int, codepoints: ?[*]const c_int, codepointCount: c_int) Font;
+pub fn LoadFontExSlice(fileName: [*:0]const u8, fontSize: c_int, codepoints: ?[]const c_int) Font {
+    if (codepoints) |codep| {
+        return LoadFontEx(fileName, fontSize, codep.ptr, @intCast(codep.len));
+    } else {
+        return LoadFontEx(fileName, fontSize, null, 0);
+    }
+}
 pub extern fn LoadFontFromImage(image: Image, key: Color, firstChar: c_int) Font;
 pub extern fn LoadFontFromMemory(fileType: [*:0]const u8, fileData: [*]const u8, dataSize: c_int, fontSize: c_int, codepoints: ?[*]const c_int, codepointCount: c_int) Font;
+pub fn LoadFontFromMemorySlice(fileType: [*:0]const u8, fileData: []const u8, fontSize: c_int, codepoints: ?[]const c_int) Font {
+    if (codepoints) |codep| {
+        return LoadFontFromMemory(fileType, fileData.ptr, @intCast(fileData.len), fontSize, codep.ptr, @intCast(codep.len));
+    } else {
+        return LoadFontFromMemory(fileType, fileData.ptr, @intCast(fileData.len), fontSize, null, 0);
+    }
+}
 pub extern fn UnloadFont(font: Font) void;
 pub extern fn IsFontValid(font: Font) bool;
 pub extern fn GetFontDefault() Font;
@@ -2253,7 +2334,7 @@ pub extern fn ImageDrawRectangle(dst: *Image, posX: c_int, posY: c_int, width: c
 pub extern fn ImageDrawRectangleV(dst: *Image, position: Vector2, size: Vector2, color: Color) void;
 pub extern fn ImageDrawRectangleRec(dst: *Image, rec: Rectangle, color: Color) void;
 pub extern fn ImageDrawRectangleLines(dst: *Image, rec: Rectangle, thick: c_int, color: Color) void;
-pub extern fn ImageDraw(dst: *Image, src: Image, srcRec: Rectangle, dstRec: Rectangle, tint: Color) void;
+pub extern fn ImageDrawImage(dst: *Image, src: Image, srcRec: Rectangle, dstRec: Rectangle, tint: Color) void;
 pub extern fn ImageDrawText(dst: *Image, text: [*:0]const u8, posX: c_int, posY: c_int, fontSize: c_int, color: Color) void;
 pub extern fn ImageDrawTextEx(dst: *Image, font: Font, text: [*:0]const u8, position: Vector2, fontSize: f32, spacing: f32, tint: Color) void;
 pub extern fn IsWindowReady() bool;
@@ -2551,22 +2632,19 @@ pub extern fn AttachAudioMixedProcessor(processor: AudioCallback) void;
 pub extern fn DetachAudioMixedProcessor(processor: AudioCallback) void;
 pub extern fn LoadMaterialDefault() Material;
 pub extern fn DrawText(text: [*:0]const u8, posX: c_int, posY: c_int, fontSize: c_int, color: Color) void;
-
-// non-tweaked
-
-pub extern fn WaveCrop(wave: [*c]Wave, initSample: c_int, finalSample: c_int) void;
-pub extern fn WaveFormat(wave: [*c]Wave, sampleRate: c_int, sampleSize: c_int, channels: c_int) void;
-pub extern fn LoadWaveSamples(wave: Wave) [*c]f32;
-pub extern fn UnloadWaveSamples(samples: [*c]f32) void;
-pub extern fn GetFileModTime(fileName: [*c]const u8) c_long;
-pub extern fn CompressData(data: [*c]const u8, dataSize: c_int, compDataSize: [*c]c_int) [*c]u8;
-pub extern fn DecompressData(compData: [*c]const u8, compDataSize: c_int, dataSize: [*c]c_int) [*c]u8;
-pub extern fn EncodeDataBase64(data: [*c]const u8, dataSize: c_int, outputSize: [*c]c_int) [*c]u8;
-pub extern fn DecodeDataBase64(data: [*c]const u8, outputSize: [*c]c_int) [*c]u8;
-pub extern fn LoadAutomationEventList(fileName: [*c]const u8) AutomationEventList;
+pub extern fn WaveCrop(wave: *Wave, initSample: c_int, finalSample: c_int) void;
+pub extern fn WaveFormat(wave: *Wave, sampleRate: c_int, sampleSize: c_int, channels: c_int) void;
+pub extern fn LoadWaveSamples(wave: Wave) [*]f32;
+pub extern fn UnloadWaveSamples(samples: [*]f32) void;
+pub extern fn GetFileModTime(fileName: ?[*:0]const u8) c_long;
+pub extern fn CompressData(data: [*]const u8, dataSize: c_int, compDataSize: *c_int) ?[*]u8;
+pub extern fn DecompressData(compData: [*]const u8, compDataSize: c_int, dataSize: *c_int) ?[*]u8;
+pub extern fn EncodeDataBase64(data: [*]const u8, dataSize: c_int, outputSize: *c_int) ?[*:0]u8;
+pub extern fn DecodeDataBase64(data: [*:0]const u8, outputSize: *c_int) ?[*]u8;
+pub extern fn LoadAutomationEventList(fileName: ?[*:0]const u8) AutomationEventList;
 pub extern fn UnloadAutomationEventList(list: AutomationEventList) void;
-pub extern fn ExportAutomationEventList(list: AutomationEventList, fileName: [*c]const u8) bool;
-pub extern fn SetAutomationEventList(list: [*c]AutomationEventList) void;
+pub extern fn ExportAutomationEventList(list: AutomationEventList, fileName: [*:0]const u8) bool;
+pub extern fn SetAutomationEventList(list: *AutomationEventList) void;
 pub extern fn SetAutomationEventBaseFrame(frame: c_int) void;
 pub extern fn StartAutomationEventRecording() void;
 pub extern fn StopAutomationEventRecording() void;
@@ -2577,7 +2655,7 @@ pub extern fn GetShapesTextureRectangle() Rectangle;
 pub extern fn GetSplinePointLinear(startPos: Vector2, endPos: Vector2, t: f32) Vector2;
 pub extern fn GetSplinePointBasis(p1: Vector2, p2: Vector2, p3: Vector2, p4: Vector2, t: f32) Vector2;
 pub extern fn GetSplinePointCatmullRom(p1: Vector2, p2: Vector2, p3: Vector2, p4: Vector2, t: f32) Vector2;
-pub extern fn GetSplinePointBezierQuad(p1: Vector2, c2: Vector2, p3: Vector2, t: f32) Vector2;
+pub extern fn GetSplinePointBezierQuadratic(p1: Vector2, c2: Vector2, p3: Vector2, t: f32) Vector2;
 pub extern fn GetSplinePointBezierCubic(p1: Vector2, c2: Vector2, c3: Vector2, p4: Vector2, t: f32) Vector2;
 pub extern fn CheckCollisionRecs(rec1: Rectangle, rec2: Rectangle) bool;
 pub extern fn CheckCollisionCircles(center1: Vector2, radius1: f32, center2: Vector2, radius2: f32) bool;
@@ -2585,6 +2663,19 @@ pub extern fn CheckCollisionCircleRec(center: Vector2, radius: f32, rec: Rectang
 pub extern fn CheckCollisionPointRec(point: Vector2, rec: Rectangle) bool;
 pub extern fn CheckCollisionPointCircle(point: Vector2, center: Vector2, radius: f32) bool;
 pub extern fn CheckCollisionPointTriangle(point: Vector2, p1: Vector2, p2: Vector2, p3: Vector2) bool;
+pub extern fn LoadCodepoints(text: ?[*:0]const u8, count: *c_int) ?[*]c_int;
+pub fn LoadCodepointsSlice(text: ?[*:0]const u8) ?[]c_int {
+    var len: c_int = 0;
+    const codepoints = LoadCodepoints(text, &len) orelse return null;
+    return codepoints[0..@intCast(len)];
+}
+pub extern fn UnloadCodepoints(codepoints: ?[*]c_int) void;
+pub fn UnloadCodepointsSlice(codepoints: ?[]c_int) void {
+    if (codepoints) |codep| UnloadCodepoints(codep.ptr);
+}
+
+// non-tweaked
+
 pub extern fn CheckCollisionPointPoly(point: Vector2, points: [*c]Vector2, pointCount: c_int) bool;
 pub extern fn CheckCollisionLines(startPos1: Vector2, endPos1: Vector2, startPos2: Vector2, endPos2: Vector2, collisionPoint: [*c]Vector2) bool;
 pub extern fn CheckCollisionPointLine(point: Vector2, p1: Vector2, p2: Vector2, threshold: c_int) bool;
@@ -2604,8 +2695,6 @@ pub extern fn GetGlyphInfo(font: Font, codepoint: c_int) GlyphInfo;
 pub extern fn GetGlyphAtlasRec(font: Font, codepoint: c_int) Rectangle;
 pub extern fn LoadUTF8(codepoints: [*c]const c_int, length: c_int) [*c]u8;
 pub extern fn UnloadUTF8(text: [*c]u8) void;
-pub extern fn LoadCodepoints(text: [*c]const u8, count: [*c]c_int) [*c]c_int;
-pub extern fn UnloadCodepoints(codepoints: [*c]c_int) void;
 pub extern fn GetCodepointCount(text: [*c]const u8) c_int;
 pub extern fn GetCodepoint(text: [*c]const u8, codepointSize: [*c]c_int) c_int;
 pub extern fn GetCodepointPrevious(text: [*c]const u8, codepointSize: [*c]c_int) c_int;
@@ -2668,8 +2757,64 @@ pub extern fn GetRayCollisionBox(ray: Ray, box: BoundingBox) RayCollision;
 pub extern fn GetRayCollisionMesh(ray: Ray, mesh: Mesh, transform: Matrix) RayCollision;
 pub extern fn GetRayCollisionTriangle(ray: Ray, p1: Vector3, p2: Vector3, p3: Vector3) RayCollision;
 pub extern fn GetRayCollisionQuad(ray: Ray, p1: Vector3, p2: Vector3, p3: Vector3, p4: Vector3) RayCollision;
+pub extern fn FileRename(fileName: [*c]const u8, fileRename: [*c]const u8) c_int;
+pub extern fn FileRemove(fileName: [*c]const u8) c_int;
+pub extern fn FileCopy(srcPath: [*c]const u8, dstPath: [*c]const u8) c_int;
+pub extern fn FileMove(srcPath: [*c]const u8, dstPath: [*c]const u8) c_int;
+pub extern fn FileTextReplace(fileName: [*c]const u8, search: [*c]const u8, replacement: [*c]const u8) c_int;
+pub extern fn FileTextFindIndex(fileName: [*c]const u8, search: [*c]const u8) c_int;
+pub extern fn IsFileHidden(filePath: [*c]const u8) bool;
+pub extern fn IsPathDirectory(path: [*c]const u8) bool;
+pub extern fn IsPathAbsolute(path: [*c]const u8) bool;
+pub extern fn GetDirectoryFileCount(dirPath: [*c]const u8) c_uint;
+pub extern fn GetDirectoryFileCountEx(basePath: [*c]const u8, filter: [*c]const u8, scanSubdirs: bool) c_uint;
+pub extern fn ComputeCRC32(data: [*c]const u8, dataSize: c_int) c_uint;
+pub extern fn ComputeMD5(data: [*c]const u8, dataSize: c_int) [*c]c_uint;
+pub extern fn ComputeSHA1(data: [*c]const u8, dataSize: c_int) [*c]c_uint;
+pub extern fn ComputeSHA256(data: [*c]const u8, dataSize: c_int) [*c]c_uint;
+pub extern fn GetKeyName(key: c_int) [*c]const u8;
+pub extern fn DrawLineDashed(startPos: Vector2, endPos: Vector2, dashSize: c_int, spaceSize: c_int, color: Color) void;
+pub extern fn DrawTriangleGradient(v1: Vector2, v2: Vector2, v3: Vector2, c1: Color, c2: Color, c3: Color) void;
+pub extern fn DrawTriangleLinesEx(v1: Vector2, v2: Vector2, v3: Vector2, thick: f32, color: Color) void;
+pub extern fn DrawCircleSectorLinesEx(center: Vector2, radius: f32, startAngle: f32, endAngle: f32, segments: c_int, thick: f32, color: Color) void;
+pub extern fn DrawCircleLinesEx(center: Vector2, radius: f32, thick: f32, color: Color) void;
+pub extern fn DrawEllipseV(center: Vector2, radiusH: f32, radiusV: f32, color: Color) void;
+pub extern fn DrawEllipseLinesV(center: Vector2, radiusH: f32, radiusV: f32, color: Color) void;
+pub extern fn DrawEllipseLinesEx(center: Vector2, radiusH: f32, radiusV: f32, thick: f32, color: Color) void;
+pub extern fn DrawRingLinesEx(center: Vector2, innerRadius: f32, outerRadius: f32, startAngle: f32, endAngle: f32, segments: c_int, thick: f32, color: Color) void;
+pub extern fn CheckCollisionCircleLine(center: Vector2, radius: f32, p1: Vector2, p2: Vector2) bool;
+pub extern fn ImageFromChannel(image: Image, selectedChannel: c_int) Image;
+pub extern fn ImageDrawLineEx(dst: [*c]Image, start: Vector2, end: Vector2, thick: c_int, color: Color) void;
+pub extern fn ImageDrawLineStrip(dst: [*c]Image, points: [*c]const Vector2, pointCount: c_int, color: Color) void;
+pub extern fn ImageDrawTriangle(dst: [*c]Image, v1: Vector2, v2: Vector2, v3: Vector2, color: Color) void;
+pub extern fn ImageDrawTriangleGradient(dst: [*c]Image, v1: Vector2, v2: Vector2, v3: Vector2, c1: Color, c2: Color, c3: Color) void;
+pub extern fn ImageDrawTriangleLines(dst: [*c]Image, v1: Vector2, v2: Vector2, v3: Vector2, color: Color) void;
+pub extern fn ImageDrawTriangleFan(dst: [*c]Image, points: [*c]const Vector2, pointCount: c_int, color: Color) void;
+pub extern fn ImageDrawTriangleStrip(dst: [*c]Image, points: [*c]const Vector2, pointCount: c_int, color: Color) void;
+pub extern fn ImageDrawRectanglePro(dst: [*c]Image, rec: Rectangle, origin: Vector2, rotation: f32, color: Color) void;
+pub extern fn ImageDrawRectangleLinesEx(dst: [*c]Image, rec: Rectangle, thick: c_int, color: Color) void;
+pub extern fn ImageDrawRectangleGradientEx(dst: [*c]Image, rec: Rectangle, col1: Color, col2: Color, col3: Color, col4: Color) void;
+pub extern fn ImageDrawCircleGradient(dst: [*c]Image, center: Vector2, radius: f32, inner: Color, outer: Color) void;
+pub extern fn ImageDrawImageEx(dst: [*c]Image, src: Image, position: Vector2, rotation: f32, scale: f32, tint: Color) void;
+pub extern fn ImageDrawImageRec(dst: [*c]Image, src: Image, srcRec: Rectangle, position: Vector2, tint: Color) void;
+pub extern fn ImageDrawImagePro(dst: [*c]Image, src: Image, srcRec: Rectangle, dstRec: Rectangle, origin: Vector2, rotation: f32, tint: Color) void;
+pub extern fn ImageDrawTextPro(dst: [*c]Image, font: Font, text: [*c]const u8, position: Vector2, origin: Vector2, rotation: f32, fontSize: f32, spacing: f32, tint: Color) void;
+pub extern fn LoadRenderTextureEx(width: c_int, height: c_int, format: c_int) RenderTexture2D;
+pub extern fn ColorLerp(color1: Color, color2: Color, factor: f32) Color;
+pub extern fn MeasureTextCodepoints(font: Font, codepoints: [*c]const c_int, length: c_int, fontSize: f32, spacing: f32) Vector2;
+pub extern fn LoadTextLines(text: [*c]const u8, count: [*c]c_int) [*c][*c]u8;
+pub extern fn UnloadTextLines(text: [*c][*c]u8, lineCount: c_int) void;
+pub extern fn TextRemoveSpaces(text: [*c]const u8) [*c]const u8;
+pub extern fn GetTextBetween(text: [*c]const u8, begin: [*c]const u8, end: [*c]const u8) [*c]u8;
+pub extern fn TextReplaceAlloc(text: [*c]const u8, search: [*c]const u8, replacement: [*c]const u8) [*c]u8;
+pub extern fn TextReplaceBetween(text: [*c]const u8, begin: [*c]const u8, end: [*c]const u8, replacement: [*c]const u8) [*c]u8;
+pub extern fn TextReplaceBetweenAlloc(text: [*c]const u8, begin: [*c]const u8, end: [*c]const u8, replacement: [*c]const u8) [*c]u8;
+pub extern fn TextInsertAlloc(text: [*c]const u8, insert: [*c]const u8, position: c_int) [*c]u8;
+pub extern fn TextToSnake(text: [*c]const u8) [*c]u8;
+pub extern fn TextToCamel(text: [*c]const u8) [*c]u8;
+pub extern fn UpdateModelAnimationEx(model: Model, animA: ModelAnimation, frameA: f32, animB: ModelAnimation, frameB: f32, blend: f32) void;
 
-pub const struct_rlVertexBuffer = extern struct {
+pub const rlVertexBuffer = extern struct {
     elementCount: c_int = @import("std").mem.zeroes(c_int),
     vertices: [*c]f32 = @import("std").mem.zeroes([*c]f32),
     texcoords: [*c]f32 = @import("std").mem.zeroes([*c]f32),
@@ -2679,15 +2824,13 @@ pub const struct_rlVertexBuffer = extern struct {
     vaoId: c_uint = @import("std").mem.zeroes(c_uint),
     vboId: [5]c_uint = @import("std").mem.zeroes([5]c_uint),
 };
-pub const rlVertexBuffer = struct_rlVertexBuffer;
-pub const struct_rlDrawCall = extern struct {
+pub const rlDrawCall = extern struct {
     mode: c_int = @import("std").mem.zeroes(c_int),
     vertexCount: c_int = @import("std").mem.zeroes(c_int),
     vertexAlignment: c_int = @import("std").mem.zeroes(c_int),
     textureId: c_uint = @import("std").mem.zeroes(c_uint),
 };
-pub const rlDrawCall = struct_rlDrawCall;
-pub const struct_rlRenderBatch = extern struct {
+pub const rlRenderBatch = extern struct {
     bufferCount: c_int = @import("std").mem.zeroes(c_int),
     currentBuffer: c_int = @import("std").mem.zeroes(c_int),
     vertexBuffer: [*c]rlVertexBuffer = @import("std").mem.zeroes([*c]rlVertexBuffer),
@@ -2695,7 +2838,6 @@ pub const struct_rlRenderBatch = extern struct {
     drawCounter: c_int = @import("std").mem.zeroes(c_int),
     currentDepth: f32 = @import("std").mem.zeroes(f32),
 };
-pub const rlRenderBatch = struct_rlRenderBatch;
 
 pub const VertexAttributeIntType = enum(c_int) {
     byte = 0x1400,
