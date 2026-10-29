@@ -76,4 +76,20 @@ pub fn build(b: *std.Build) void {
 
     const test_step = b.step("test", "Run unit tests");
     test_step.dependOn(&run_mod_unit_tests.step);
+
+    const example = b.addExecutable(.{
+        .name = "zaylib-example",
+        .root_module = b.createModule(.{
+            .root_source_file = b.path("example/simple_window.zig"),
+            .target = target,
+            .optimize = optimize,
+            .imports = &.{
+                .{ .name = "rl", .module = mod },
+            },
+        }),
+    });
+
+    const run_example = b.addRunArtifact(example);
+    const example_step = b.step("example", "Run example");
+    example_step.dependOn(&run_example.step);
 }

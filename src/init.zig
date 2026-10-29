@@ -562,8 +562,16 @@ pub const Rectangle = extern struct {
         return .{ .x = x, .y = y, .width = width, .height = height };
     }
 
-    pub fn fromVector(p: Vector2, s: Vector2) Rectangle {
-        return .{ .x = p.x, .y = p.y, .width = s.x, .height = s.y };
+    pub fn initV(pos_vec: Vector2, size_vec: Vector2) Rectangle {
+        return .{ .x = pos_vec.x, .y = pos_vec.y, .width = size_vec.x, .height = size_vec.y };
+    }
+
+    pub fn initCentered(center_x: f32, center_y: f32, width: f32, height: f32) Rectangle {
+        return .{ .x = center_x - width / 2, .y = center_y - height / 2, .width = width, .height = height };
+    }
+
+    pub fn initCenteredV(center_vec: Vector2, size_vec: Vector2) Rectangle {
+        return .{ .x = center_vec.x - size_vec.x / 2, .y = center_vec.y - size_vec.y / 2, .width = size_vec.x, .height = size_vec.y };
     }
 
     pub fn fromInt(x: anytype, y: anytype, width: anytype, height: anytype) Rectangle {
@@ -1050,6 +1058,19 @@ pub const Transform = extern struct {
     translation: Vector3 = .{},
     rotation: Quaternion = .{},
     scale: Vector3 = .{},
+
+    pub const identity: Transform = .{
+        .translation = .{},
+        .rotation = .quatIdentity,
+        .scale = .one,
+    };
+
+    pub fn format(
+        self: @This(),
+        writer: *std.Io.Writer,
+    ) !void {
+        try writer.print("({f}, {f}, {f})", .{ self.translation, self.rotation, self.scale });
+    }
 };
 
 pub const BoneInfo = extern struct {
@@ -1325,6 +1346,15 @@ pub const TraceLogLevel = enum(c_int) {
     }
 };
 
+pub const LOG_ALL = TraceLogLevel.all;
+pub const LOG_TRACE = TraceLogLevel.trace;
+pub const LOG_DEBUG = TraceLogLevel.debug;
+pub const LOG_INFO = TraceLogLevel.info;
+pub const LOG_WARNING = TraceLogLevel.warning;
+pub const LOG_ERROR = TraceLogLevel.@"error";
+pub const LOG_FATAL = TraceLogLevel.fatal;
+pub const LOG_NONE = TraceLogLevel.none;
+
 pub const KeyboardKey = enum(c_int) {
     null = c.KEY_NULL,
     apostrophe = c.KEY_APOSTROPHE,
@@ -1442,6 +1472,117 @@ pub const KeyboardKey = enum(c_int) {
     }
 };
 
+pub const KEY_NULL = KeyboardKey.null;
+pub const KEY_APOSTROPHE = KeyboardKey.apostrophe;
+pub const KEY_COMMA = KeyboardKey.comma;
+pub const KEY_MINUS = KeyboardKey.minus;
+pub const KEY_PERIOD = KeyboardKey.period;
+pub const KEY_SLASH = KeyboardKey.slash;
+pub const KEY_ZERO = KeyboardKey.zero;
+pub const KEY_ONE = KeyboardKey.one;
+pub const KEY_TWO = KeyboardKey.two;
+pub const KEY_THREE = KeyboardKey.three;
+pub const KEY_FOUR = KeyboardKey.four;
+pub const KEY_FIVE = KeyboardKey.five;
+pub const KEY_SIX = KeyboardKey.six;
+pub const KEY_SEVEN = KeyboardKey.seven;
+pub const KEY_EIGHT = KeyboardKey.eight;
+pub const KEY_NINE = KeyboardKey.nine;
+pub const KEY_SEMICOLON = KeyboardKey.semicolon;
+pub const KEY_EQUAL = KeyboardKey.equal;
+pub const KEY_A = KeyboardKey.a;
+pub const KEY_B = KeyboardKey.b;
+pub const KEY_C = KeyboardKey.c;
+pub const KEY_D = KeyboardKey.d;
+pub const KEY_E = KeyboardKey.e;
+pub const KEY_F = KeyboardKey.f;
+pub const KEY_G = KeyboardKey.g;
+pub const KEY_H = KeyboardKey.h;
+pub const KEY_I = KeyboardKey.i;
+pub const KEY_J = KeyboardKey.j;
+pub const KEY_K = KeyboardKey.k;
+pub const KEY_L = KeyboardKey.l;
+pub const KEY_M = KeyboardKey.m;
+pub const KEY_N = KeyboardKey.n;
+pub const KEY_O = KeyboardKey.o;
+pub const KEY_P = KeyboardKey.p;
+pub const KEY_Q = KeyboardKey.q;
+pub const KEY_R = KeyboardKey.r;
+pub const KEY_S = KeyboardKey.s;
+pub const KEY_T = KeyboardKey.t;
+pub const KEY_U = KeyboardKey.u;
+pub const KEY_V = KeyboardKey.v;
+pub const KEY_W = KeyboardKey.w;
+pub const KEY_X = KeyboardKey.x;
+pub const KEY_Y = KeyboardKey.y;
+pub const KEY_Z = KeyboardKey.z;
+pub const KEY_LEFT_BRACKET = KeyboardKey.left_bracket;
+pub const KEY_BACKSLASH = KeyboardKey.backslash;
+pub const KEY_RIGHT_BRACKET = KeyboardKey.right_bracket;
+pub const KEY_GRAVE = KeyboardKey.grave;
+pub const KEY_SPACE = KeyboardKey.space;
+pub const KEY_ESCAPE = KeyboardKey.escape;
+pub const KEY_ENTER = KeyboardKey.enter;
+pub const KEY_TAB = KeyboardKey.tab;
+pub const KEY_BACKSPACE = KeyboardKey.backspace;
+pub const KEY_INSERT = KeyboardKey.insert;
+pub const KEY_DELETE = KeyboardKey.delete;
+pub const KEY_RIGHT = KeyboardKey.right;
+pub const KEY_LEFT = KeyboardKey.left;
+pub const KEY_DOWN = KeyboardKey.down;
+pub const KEY_UP = KeyboardKey.up;
+pub const KEY_PAGE_UP = KeyboardKey.page_up;
+pub const KEY_PAGE_DOWN = KeyboardKey.page_down;
+pub const KEY_HOME = KeyboardKey.home;
+pub const KEY_END = KeyboardKey.end;
+pub const KEY_CAPS_LOCK = KeyboardKey.caps_lock;
+pub const KEY_SCROLL_LOCK = KeyboardKey.scroll_lock;
+pub const KEY_NUM_LOCK = KeyboardKey.num_lock;
+pub const KEY_PRINT_SCREEN = KeyboardKey.print_screen;
+pub const KEY_PAUSE = KeyboardKey.pause;
+pub const KEY_F1 = KeyboardKey.f1;
+pub const KEY_F2 = KeyboardKey.f2;
+pub const KEY_F3 = KeyboardKey.f3;
+pub const KEY_F4 = KeyboardKey.f4;
+pub const KEY_F5 = KeyboardKey.f5;
+pub const KEY_F6 = KeyboardKey.f6;
+pub const KEY_F7 = KeyboardKey.f7;
+pub const KEY_F8 = KeyboardKey.f8;
+pub const KEY_F9 = KeyboardKey.f9;
+pub const KEY_F10 = KeyboardKey.f10;
+pub const KEY_F11 = KeyboardKey.f11;
+pub const KEY_F12 = KeyboardKey.f12;
+pub const KEY_LEFT_SHIFT = KeyboardKey.left_shift;
+pub const KEY_LEFT_CONTROL = KeyboardKey.left_control;
+pub const KEY_LEFT_ALT = KeyboardKey.left_alt;
+pub const KEY_LEFT_SUPER = KeyboardKey.left_super;
+pub const KEY_RIGHT_SHIFT = KeyboardKey.right_shift;
+pub const KEY_RIGHT_CONTROL = KeyboardKey.right_control;
+pub const KEY_RIGHT_ALT = KeyboardKey.right_alt;
+pub const KEY_RIGHT_SUPER = KeyboardKey.right_super;
+pub const KEY_KB_MENU = KeyboardKey.kb_menu;
+pub const KEY_KP_0 = KeyboardKey.kp_0;
+pub const KEY_KP_1 = KeyboardKey.kp_1;
+pub const KEY_KP_2 = KeyboardKey.kp_2;
+pub const KEY_KP_3 = KeyboardKey.kp_3;
+pub const KEY_KP_4 = KeyboardKey.kp_4;
+pub const KEY_KP_5 = KeyboardKey.kp_5;
+pub const KEY_KP_6 = KeyboardKey.kp_6;
+pub const KEY_KP_7 = KeyboardKey.kp_7;
+pub const KEY_KP_8 = KeyboardKey.kp_8;
+pub const KEY_KP_9 = KeyboardKey.kp_9;
+pub const KEY_KP_DECIMAL = KeyboardKey.kp_decimal;
+pub const KEY_KP_DIVIDE = KeyboardKey.kp_divide;
+pub const KEY_KP_MULTIPLY = KeyboardKey.kp_multiply;
+pub const KEY_KP_SUBTRACT = KeyboardKey.kp_subtract;
+pub const KEY_KP_ADD = KeyboardKey.kp_add;
+pub const KEY_KP_ENTER = KeyboardKey.kp_enter;
+pub const KEY_KP_EQUAL = KeyboardKey.kp_equal;
+pub const KEY_BACK = KeyboardKey.back;
+pub const KEY_MENU = KeyboardKey.menu;
+pub const KEY_VOLUME_UP = KeyboardKey.volume_up;
+pub const KEY_VOLUME_DOWN = KeyboardKey.volume_down;
+
 pub const MouseButton = enum(c_int) {
     left = c.MOUSE_BUTTON_LEFT,
     right = c.MOUSE_BUTTON_RIGHT,
@@ -1455,6 +1596,14 @@ pub const MouseButton = enum(c_int) {
         return @backingInt(self);
     }
 };
+
+pub const MOUSE_BUTTON_LEFT = MouseButton.left;
+pub const MOUSE_BUTTON_RIGHT = MouseButton.right;
+pub const MOUSE_BUTTON_MIDDLE = MouseButton.middle;
+pub const MOUSE_BUTTON_SIDE = MouseButton.side;
+pub const MOUSE_BUTTON_EXTRA = MouseButton.extra;
+pub const MOUSE_BUTTON_FORWARD = MouseButton.forward;
+pub const MOUSE_BUTTON_BACK = MouseButton.back;
 
 pub const MouseCursor = enum(c_int) {
     default = c.MOUSE_CURSOR_DEFAULT,
@@ -1473,6 +1622,18 @@ pub const MouseCursor = enum(c_int) {
         return @backingInt(self);
     }
 };
+
+pub const MOUSE_CURSOR_DEFAULT = MouseCursor.default;
+pub const MOUSE_CURSOR_ARROW = MouseCursor.arrow;
+pub const MOUSE_CURSOR_IBEAM = MouseCursor.ibeam;
+pub const MOUSE_CURSOR_CROSSHAIR = MouseCursor.crosshair;
+pub const MOUSE_CURSOR_POINTING_HAND = MouseCursor.pointing_hand;
+pub const MOUSE_CURSOR_RESIZE_EW = MouseCursor.resize_ew;
+pub const MOUSE_CURSOR_RESIZE_NS = MouseCursor.resize_ns;
+pub const MOUSE_CURSOR_RESIZE_NWSE = MouseCursor.resize_nwse;
+pub const MOUSE_CURSOR_RESIZE_NESW = MouseCursor.resize_nesw;
+pub const MOUSE_CURSOR_RESIZE_ALL = MouseCursor.resize_all;
+pub const MOUSE_CURSOR_NOT_ALLOWED = MouseCursor.not_allowed;
 
 pub const GamepadButton = enum(c_int) {
     unknown = c.GAMEPAD_BUTTON_UNKNOWN,
@@ -1499,6 +1660,25 @@ pub const GamepadButton = enum(c_int) {
     }
 };
 
+pub const GAMEPAD_BUTTON_UNKNOWN = GamepadButton.unknown;
+pub const GAMEPAD_BUTTON_LEFT_FACE_UP = GamepadButton.left_face_up;
+pub const GAMEPAD_BUTTON_LEFT_FACE_RIGHT = GamepadButton.left_face_right;
+pub const GAMEPAD_BUTTON_LEFT_FACE_DOWN = GamepadButton.left_face_down;
+pub const GAMEPAD_BUTTON_LEFT_FACE_LEFT = GamepadButton.left_face_left;
+pub const GAMEPAD_BUTTON_RIGHT_FACE_UP = GamepadButton.right_face_up;
+pub const GAMEPAD_BUTTON_RIGHT_FACE_RIGHT = GamepadButton.right_face_right;
+pub const GAMEPAD_BUTTON_RIGHT_FACE_DOWN = GamepadButton.right_face_down;
+pub const GAMEPAD_BUTTON_RIGHT_FACE_LEFT = GamepadButton.right_face_left;
+pub const GAMEPAD_BUTTON_LEFT_TRIGGER_1 = GamepadButton.left_trigger_1;
+pub const GAMEPAD_BUTTON_LEFT_TRIGGER_2 = GamepadButton.left_trigger_2;
+pub const GAMEPAD_BUTTON_RIGHT_TRIGGER_1 = GamepadButton.right_trigger_1;
+pub const GAMEPAD_BUTTON_RIGHT_TRIGGER_2 = GamepadButton.right_trigger_2;
+pub const GAMEPAD_BUTTON_MIDDLE_LEFT = GamepadButton.middle_left;
+pub const GAMEPAD_BUTTON_MIDDLE = GamepadButton.middle;
+pub const GAMEPAD_BUTTON_MIDDLE_RIGHT = GamepadButton.middle_right;
+pub const GAMEPAD_BUTTON_LEFT_THUMB = GamepadButton.left_thumb;
+pub const GAMEPAD_BUTTON_RIGHT_THUMB = GamepadButton.right_thumb;
+
 pub const GamepadAxis = enum(c_int) {
     left_x = c.GAMEPAD_AXIS_LEFT_X,
     left_y = c.GAMEPAD_AXIS_LEFT_Y,
@@ -1511,6 +1691,13 @@ pub const GamepadAxis = enum(c_int) {
         return @backingInt(self);
     }
 };
+
+pub const GAMEPAD_AXIS_LEFT_X = GamepadAxis.left_x;
+pub const GAMEPAD_AXIS_LEFT_Y = GamepadAxis.left_y;
+pub const GAMEPAD_AXIS_RIGHT_X = GamepadAxis.right_x;
+pub const GAMEPAD_AXIS_RIGHT_Y = GamepadAxis.right_y;
+pub const GAMEPAD_AXIS_LEFT_TRIGGER = GamepadAxis.left_trigger;
+pub const GAMEPAD_AXIS_RIGHT_TRIGGER = GamepadAxis.right_trigger;
 
 pub const MaterialMapIndex = enum(c_int) {
     albedo = c.MATERIAL_MAP_ALBEDO,
@@ -1536,6 +1723,18 @@ pub const MaterialMapIndex = enum(c_int) {
         return @intCast(@backingInt(self));
     }
 };
+
+pub const MATERIAL_MAP_ALBEDO = MaterialMapIndex.albedo;
+pub const MATERIAL_MAP_METALNESS = MaterialMapIndex.metalness;
+pub const MATERIAL_MAP_NORMAL = MaterialMapIndex.normal;
+pub const MATERIAL_MAP_ROUGHNESS = MaterialMapIndex.roughness;
+pub const MATERIAL_MAP_OCCLUSION = MaterialMapIndex.occlusion;
+pub const MATERIAL_MAP_EMISSION = MaterialMapIndex.emission;
+pub const MATERIAL_MAP_HEIGHT = MaterialMapIndex.height;
+pub const MATERIAL_MAP_CUBEMAP = MaterialMapIndex.cubemap;
+pub const MATERIAL_MAP_IRRADIANCE = MaterialMapIndex.irradiance;
+pub const MATERIAL_MAP_PREFILTER = MaterialMapIndex.prefilter;
+pub const MATERIAL_MAP_BRDF = MaterialMapIndex.brdf;
 
 pub const ShaderLocationIndex = enum(c_int) {
     vertex_position = c.SHADER_LOC_VERTEX_POSITION,
@@ -1577,6 +1776,35 @@ pub const ShaderLocationIndex = enum(c_int) {
     }
 };
 
+pub const SHADER_LOC_VERTEX_POSITION = ShaderLocationIndex.vertex_position;
+pub const SHADER_LOC_VERTEX_TEXCOORD01 = ShaderLocationIndex.vertex_texcoord01;
+pub const SHADER_LOC_VERTEX_TEXCOORD02 = ShaderLocationIndex.vertex_texcoord02;
+pub const SHADER_LOC_VERTEX_NORMAL = ShaderLocationIndex.vertex_normal;
+pub const SHADER_LOC_VERTEX_TANGENT = ShaderLocationIndex.vertex_tangent;
+pub const SHADER_LOC_VERTEX_COLOR = ShaderLocationIndex.vertex_color;
+pub const SHADER_LOC_MATRIX_MVP = ShaderLocationIndex.matrix_mvp;
+pub const SHADER_LOC_MATRIX_VIEW = ShaderLocationIndex.matrix_view;
+pub const SHADER_LOC_MATRIX_PROJECTION = ShaderLocationIndex.matrix_projection;
+pub const SHADER_LOC_MATRIX_MODEL = ShaderLocationIndex.matrix_model;
+pub const SHADER_LOC_MATRIX_NORMAL = ShaderLocationIndex.matrix_normal;
+pub const SHADER_LOC_VECTOR_VIEW = ShaderLocationIndex.vector_view;
+pub const SHADER_LOC_COLOR_DIFFUSE = ShaderLocationIndex.color_diffuse;
+pub const SHADER_LOC_COLOR_SPECULAR = ShaderLocationIndex.color_specular;
+pub const SHADER_LOC_COLOR_AMBIENT = ShaderLocationIndex.color_ambient;
+pub const SHADER_LOC_MAP_ALBEDO = ShaderLocationIndex.map_albedo;
+pub const SHADER_LOC_MAP_METALNESS = ShaderLocationIndex.map_metalness;
+pub const SHADER_LOC_MAP_NORMAL = ShaderLocationIndex.map_normal;
+pub const SHADER_LOC_MAP_ROUGHNESS = ShaderLocationIndex.map_roughness;
+pub const SHADER_LOC_MAP_OCCLUSION = ShaderLocationIndex.map_occlusion;
+pub const SHADER_LOC_MAP_EMISSION = ShaderLocationIndex.map_emission;
+pub const SHADER_LOC_MAP_HEIGHT = ShaderLocationIndex.map_height;
+pub const SHADER_LOC_MAP_CUBEMAP = ShaderLocationIndex.map_cubemap;
+pub const SHADER_LOC_MAP_IRRADIANCE = ShaderLocationIndex.map_irradiance;
+pub const SHADER_LOC_MAP_PREFILTER = ShaderLocationIndex.map_prefilter;
+pub const SHADER_LOC_MAP_BRDF = ShaderLocationIndex.map_brdf;
+pub const SHADER_LOC_MAP_DIFFUSE: ShaderLocationIndex = .map_diffuse;
+pub const SHADER_LOC_MAP_SPECULAR: ShaderLocationIndex = .map_specular;
+
 pub const ShaderUniformDataType = enum(c_int) {
     float = c.SHADER_UNIFORM_FLOAT,
     vec2 = c.SHADER_UNIFORM_VEC2,
@@ -1593,6 +1821,16 @@ pub const ShaderUniformDataType = enum(c_int) {
     }
 };
 
+pub const SHADER_UNIFORM_FLOAT = ShaderUniformDataType.float;
+pub const SHADER_UNIFORM_VEC2 = ShaderUniformDataType.vec2;
+pub const SHADER_UNIFORM_VEC3 = ShaderUniformDataType.vec3;
+pub const SHADER_UNIFORM_VEC4 = ShaderUniformDataType.vec4;
+pub const SHADER_UNIFORM_INT = ShaderUniformDataType.int;
+pub const SHADER_UNIFORM_IVEC2 = ShaderUniformDataType.ivec2;
+pub const SHADER_UNIFORM_IVEC3 = ShaderUniformDataType.ivec3;
+pub const SHADER_UNIFORM_IVEC4 = ShaderUniformDataType.ivec4;
+pub const SHADER_UNIFORM_SAMPLER2D = ShaderUniformDataType.sampler2d;
+
 pub const ShaderAttributeDataType = enum(c_int) {
     float = c.SHADER_ATTRIB_FLOAT,
     vec2 = c.SHADER_ATTRIB_VEC2,
@@ -1603,6 +1841,11 @@ pub const ShaderAttributeDataType = enum(c_int) {
         return @backingInt(self);
     }
 };
+
+pub const SHADER_ATTRIB_FLOAT = ShaderAttributeDataType.float;
+pub const SHADER_ATTRIB_VEC2 = ShaderAttributeDataType.vec2;
+pub const SHADER_ATTRIB_VEC3 = ShaderAttributeDataType.vec3;
+pub const SHADER_ATTRIB_VEC4 = ShaderAttributeDataType.vec4;
 
 pub const PixelFormat = enum(c_int) {
     uncompressed_grayscale = c.PIXELFORMAT_UNCOMPRESSED_GRAYSCALE,
@@ -1635,6 +1878,31 @@ pub const PixelFormat = enum(c_int) {
     }
 };
 
+pub const PIXELFORMAT_UNCOMPRESSED_GRAYSCALE = PixelFormat.uncompressed_grayscale;
+pub const PIXELFORMAT_UNCOMPRESSED_GRAY_ALPHA = PixelFormat.uncompressed_gray_alpha;
+pub const PIXELFORMAT_UNCOMPRESSED_R5G6B5 = PixelFormat.uncompressed_r5g6b5;
+pub const PIXELFORMAT_UNCOMPRESSED_R8G8B8 = PixelFormat.uncompressed_r8g8b8;
+pub const PIXELFORMAT_UNCOMPRESSED_R5G5B5A1 = PixelFormat.uncompressed_r5g5b5a1;
+pub const PIXELFORMAT_UNCOMPRESSED_R4G4B4A4 = PixelFormat.uncompressed_r4g4b4a4;
+pub const PIXELFORMAT_UNCOMPRESSED_R8G8B8A8 = PixelFormat.uncompressed_r8g8b8a8;
+pub const PIXELFORMAT_UNCOMPRESSED_R32 = PixelFormat.uncompressed_r32;
+pub const PIXELFORMAT_UNCOMPRESSED_R32G32B32 = PixelFormat.uncompressed_r32g32b32;
+pub const PIXELFORMAT_UNCOMPRESSED_R32G32B32A32 = PixelFormat.uncompressed_r32g32b32a32;
+pub const PIXELFORMAT_UNCOMPRESSED_R16 = PixelFormat.uncompressed_r16;
+pub const PIXELFORMAT_UNCOMPRESSED_R16G16B16 = PixelFormat.uncompressed_r16g16b16;
+pub const PIXELFORMAT_UNCOMPRESSED_R16G16B16A16 = PixelFormat.uncompressed_r16g16b16a16;
+pub const PIXELFORMAT_COMPRESSED_DXT1_RGB = PixelFormat.compressed_dxt1_rgb;
+pub const PIXELFORMAT_COMPRESSED_DXT1_RGBA = PixelFormat.compressed_dxt1_rgba;
+pub const PIXELFORMAT_COMPRESSED_DXT3_RGBA = PixelFormat.compressed_dxt3_rgba;
+pub const PIXELFORMAT_COMPRESSED_DXT5_RGBA = PixelFormat.compressed_dxt5_rgba;
+pub const PIXELFORMAT_COMPRESSED_ETC1_RGB = PixelFormat.compressed_etc1_rgb;
+pub const PIXELFORMAT_COMPRESSED_ETC2_RGB = PixelFormat.compressed_etc2_rgb;
+pub const PIXELFORMAT_COMPRESSED_ETC2_EAC_RGBA = PixelFormat.compressed_etc2_eac_rgba;
+pub const PIXELFORMAT_COMPRESSED_PVRT_RGB = PixelFormat.compressed_pvrt_rgb;
+pub const PIXELFORMAT_COMPRESSED_PVRT_RGBA = PixelFormat.compressed_pvrt_rgba;
+pub const PIXELFORMAT_COMPRESSED_ASTC_4X4_RGBA = PixelFormat.compressed_astc_4x4_rgba;
+pub const PIXELFORMAT_COMPRESSED_ASTC_8X8_RGBA = PixelFormat.compressed_astc_8x8_rgba;
+
 pub const TextureFilter = enum(c_int) {
     point = c.TEXTURE_FILTER_POINT,
     bilinear = c.TEXTURE_FILTER_BILINEAR,
@@ -1648,6 +1916,13 @@ pub const TextureFilter = enum(c_int) {
     }
 };
 
+pub const TEXTURE_FILTER_POINT = TextureFilter.point;
+pub const TEXTURE_FILTER_BILINEAR = TextureFilter.bilinear;
+pub const TEXTURE_FILTER_TRILINEAR = TextureFilter.trilinear;
+pub const TEXTURE_FILTER_ANISOTROPIC_4X = TextureFilter.anisotropic_4x;
+pub const TEXTURE_FILTER_ANISOTROPIC_8X = TextureFilter.anisotropic_8x;
+pub const TEXTURE_FILTER_ANISOTROPIC_16X = TextureFilter.anisotropic_16x;
+
 pub const TextureWrap = enum(c_int) {
     repeat = c.TEXTURE_WRAP_REPEAT,
     clamp = c.TEXTURE_WRAP_CLAMP,
@@ -1658,6 +1933,11 @@ pub const TextureWrap = enum(c_int) {
         return @backingInt(self);
     }
 };
+
+pub const TEXTURE_WRAP_REPEAT = TextureWrap.repeat;
+pub const TEXTURE_WRAP_CLAMP = TextureWrap.clamp;
+pub const TEXTURE_WRAP_MIRROR_REPEAT = TextureWrap.mirror_repeat;
+pub const TEXTURE_WRAP_MIRROR_CLAMP = TextureWrap.mirror_clamp;
 
 pub const CubemapLayout = enum(c_int) {
     auto_detect = c.CUBEMAP_LAYOUT_AUTO_DETECT,
@@ -1671,6 +1951,12 @@ pub const CubemapLayout = enum(c_int) {
     }
 };
 
+pub const CUBEMAP_LAYOUT_AUTO_DETECT = CubemapLayout.auto_detect;
+pub const CUBEMAP_LAYOUT_LINE_VERTICAL = CubemapLayout.line_vertical;
+pub const CUBEMAP_LAYOUT_LINE_HORIZONTAL = CubemapLayout.line_horizontal;
+pub const CUBEMAP_LAYOUT_CROSS_THREE_BY_FOUR = CubemapLayout.cross_three_by_four;
+pub const CUBEMAP_LAYOUT_CROSS_FOUR_BY_THREE = CubemapLayout.cross_four_by_three;
+
 pub const FontType = enum(c_int) {
     default = c.FONT_DEFAULT,
     bitmap = c.FONT_BITMAP,
@@ -1680,6 +1966,10 @@ pub const FontType = enum(c_int) {
         return @backingInt(self);
     }
 };
+
+pub const FONT_DEFAULT = FontType.default;
+pub const FONT_BITMAP = FontType.bitmap;
+pub const FONT_SDF = FontType.sdf;
 
 pub const BlendMode = enum(c_int) {
     alpha = c.BLEND_ALPHA,
@@ -1695,6 +1985,15 @@ pub const BlendMode = enum(c_int) {
         return @backingInt(self);
     }
 };
+
+pub const BLEND_ALPHA = BlendMode.alpha;
+pub const BLEND_ADDITIVE = BlendMode.additive;
+pub const BLEND_MULTIPLIED = BlendMode.multiplied;
+pub const BLEND_ADD_COLORS = BlendMode.add_colors;
+pub const BLEND_SUBTRACT_COLORS = BlendMode.subtract_colors;
+pub const BLEND_ALPHA_PREMULTIPLY = BlendMode.alpha_premultiply;
+pub const BLEND_CUSTOM = BlendMode.custom;
+pub const BLEND_CUSTOM_SEPARATE = BlendMode.custom_separate;
 
 pub const Gesture = packed struct(c_uint) {
     pub const none: Gesture = @fromBackingInt(c.GESTURE_NONE);
@@ -1739,6 +2038,12 @@ pub const CameraMode = enum(c_int) {
     }
 };
 
+pub const CAMERA_CUSTOM = CameraMode.custom;
+pub const CAMERA_FREE = CameraMode.free;
+pub const CAMERA_ORBITAL = CameraMode.orbital;
+pub const CAMERA_FIRST_PERSON = CameraMode.first_person;
+pub const CAMERA_THIRD_PERSON = CameraMode.third_person;
+
 pub const CameraProjection = enum(c_int) {
     perspective = c.CAMERA_PERSPECTIVE,
     orthographic = c.CAMERA_ORTHOGRAPHIC,
@@ -1747,6 +2052,9 @@ pub const CameraProjection = enum(c_int) {
         return @backingInt(self);
     }
 };
+
+pub const CAMERA_PERSPECTIVE = CameraProjection.perspective;
+pub const CAMERA_ORTHOGRAPHIC = CameraProjection.orthographic;
 
 pub const NPatchLayout = enum(c_int) {
     nine_patch = c.NPATCH_NINE_PATCH,
@@ -1757,6 +2065,10 @@ pub const NPatchLayout = enum(c_int) {
         return @backingInt(self);
     }
 };
+
+pub const NPATCH_NINE_PATCH = NPatchLayout.nine_patch;
+pub const NPATCH_THREE_PATCH_VERTICAL = NPatchLayout.three_patch_vertical;
+pub const NPATCH_THREE_PATCH_HORIZONTAL = NPatchLayout.three_patch_horizontal;
 
 pub fn DrawTextSlice(text: []const u8, posX: c_int, posY: c_int, font_size: c_int, tint: Color) void {
     DrawTextSliceV(text, .{ .x = @floatFromInt(posX), .y = @floatFromInt(posY) }, font_size, tint);
@@ -3170,3 +3482,84 @@ pub const rl_default_shader_attrib_location_color = c.RL_DEFAULT_SHADER_ATTRIB_L
 pub const rl_default_shader_attrib_location_tangent = c.RL_DEFAULT_SHADER_ATTRIB_LOCATION_TANGENT;
 pub const rl_default_shader_attrib_location_texcoord2 = c.RL_DEFAULT_SHADER_ATTRIB_LOCATION_TEXCOORD2;
 pub const rl_default_shader_attrib_location_indices = c.RL_DEFAULT_SHADER_ATTRIB_LOCATION_INDICES;
+pub const RL_DEFAULT_BATCH_BUFFER_ELEMENTS = c.RL_DEFAULT_BATCH_BUFFER_ELEMENTS;
+pub const RL_DEFAULT_BATCH_BUFFERS = c.RL_DEFAULT_BATCH_BUFFERS;
+pub const RL_DEFAULT_BATCH_DRAWCALLS = c.RL_DEFAULT_BATCH_DRAWCALLS;
+pub const RL_DEFAULT_BATCH_MAX_TEXTURE_UNITS = c.RL_DEFAULT_BATCH_MAX_TEXTURE_UNITS;
+pub const RL_MAX_MATRIX_STACK_SIZE = c.RL_MAX_MATRIX_STACK_SIZE;
+pub const RL_MAX_SHADER_LOCATIONS = c.RL_MAX_SHADER_LOCATIONS;
+pub const RL_CULL_DISTANCE_NEAR = c.RL_CULL_DISTANCE_NEAR;
+pub const RL_CULL_DISTANCE_FAR = c.RL_CULL_DISTANCE_FAR;
+pub const RL_TEXTURE_WRAP_S = c.RL_TEXTURE_WRAP_S;
+pub const RL_TEXTURE_WRAP_T = c.RL_TEXTURE_WRAP_T;
+pub const RL_TEXTURE_MAG_FILTER = c.RL_TEXTURE_MAG_FILTER;
+pub const RL_TEXTURE_MIN_FILTER = c.RL_TEXTURE_MIN_FILTER;
+pub const RL_TEXTURE_FILTER_NEAREST = c.RL_TEXTURE_FILTER_NEAREST;
+pub const RL_TEXTURE_FILTER_LINEAR = c.RL_TEXTURE_FILTER_LINEAR;
+pub const RL_TEXTURE_FILTER_MIP_NEAREST = c.RL_TEXTURE_FILTER_MIP_NEAREST;
+pub const RL_TEXTURE_FILTER_NEAREST_MIP_LINEAR = c.RL_TEXTURE_FILTER_NEAREST_MIP_LINEAR;
+pub const RL_TEXTURE_FILTER_LINEAR_MIP_NEAREST = c.RL_TEXTURE_FILTER_LINEAR_MIP_NEAREST;
+pub const RL_TEXTURE_FILTER_MIP_LINEAR = c.RL_TEXTURE_FILTER_MIP_LINEAR;
+pub const RL_TEXTURE_FILTER_ANISOTROPIC = c.RL_TEXTURE_FILTER_ANISOTROPIC;
+pub const RL_TEXTURE_MIPMAP_BIAS_RATIO = c.RL_TEXTURE_MIPMAP_BIAS_RATIO;
+pub const RL_TEXTURE_WRAP_REPEAT = c.RL_TEXTURE_WRAP_REPEAT;
+pub const RL_TEXTURE_WRAP_CLAMP = c.RL_TEXTURE_WRAP_CLAMP;
+pub const RL_TEXTURE_WRAP_MIRROR_REPEAT = c.RL_TEXTURE_WRAP_MIRROR_REPEAT;
+pub const RL_TEXTURE_WRAP_MIRROR_CLAMP = c.RL_TEXTURE_WRAP_MIRROR_CLAMP;
+pub const RL_MODELVIEW = c.RL_MODELVIEW;
+pub const RL_PROJECTION = c.RL_PROJECTION;
+pub const RL_TEXTURE = c.RL_TEXTURE;
+pub const RL_LINES = c.RL_LINES;
+pub const RL_TRIANGLES = c.RL_TRIANGLES;
+pub const RL_QUADS = c.RL_QUADS;
+pub const RL_UNSIGNED_BYTE = c.RL_UNSIGNED_BYTE;
+pub const RL_FLOAT = c.RL_FLOAT;
+pub const RL_STREAM_DRAW = c.RL_STREAM_DRAW;
+pub const RL_STREAM_READ = c.RL_STREAM_READ;
+pub const RL_STREAM_COPY = c.RL_STREAM_COPY;
+pub const RL_STATIC_DRAW = c.RL_STATIC_DRAW;
+pub const RL_STATIC_READ = c.RL_STATIC_READ;
+pub const RL_STATIC_COPY = c.RL_STATIC_COPY;
+pub const RL_DYNAMIC_DRAW = c.RL_DYNAMIC_DRAW;
+pub const RL_DYNAMIC_READ = c.RL_DYNAMIC_READ;
+pub const RL_DYNAMIC_COPY = c.RL_DYNAMIC_COPY;
+pub const RL_FRAGMENT_SHADER = c.RL_FRAGMENT_SHADER;
+pub const RL_VERTEX_SHADER = c.RL_VERTEX_SHADER;
+pub const RL_COMPUTE_SHADER = c.RL_COMPUTE_SHADER;
+pub const RL_ZERO = c.RL_ZERO;
+pub const RL_ONE = c.RL_ONE;
+pub const RL_SRC_COLOR = c.RL_SRC_COLOR;
+pub const RL_ONE_MINUS_SRC_COLOR = c.RL_ONE_MINUS_SRC_COLOR;
+pub const RL_SRC_ALPHA = c.RL_SRC_ALPHA;
+pub const RL_ONE_MINUS_SRC_ALPHA = c.RL_ONE_MINUS_SRC_ALPHA;
+pub const RL_DST_ALPHA = c.RL_DST_ALPHA;
+pub const RL_ONE_MINUS_DST_ALPHA = c.RL_ONE_MINUS_DST_ALPHA;
+pub const RL_DST_COLOR = c.RL_DST_COLOR;
+pub const RL_ONE_MINUS_DST_COLOR = c.RL_ONE_MINUS_DST_COLOR;
+pub const RL_SRC_ALPHA_SATURATE = c.RL_SRC_ALPHA_SATURATE;
+pub const RL_CONSTANT_COLOR = c.RL_CONSTANT_COLOR;
+pub const RL_ONE_MINUS_CONSTANT_COLOR = c.RL_ONE_MINUS_CONSTANT_COLOR;
+pub const RL_CONSTANT_ALPHA = c.RL_CONSTANT_ALPHA;
+pub const RL_ONE_MINUS_CONSTANT_ALPHA = c.RL_ONE_MINUS_CONSTANT_ALPHA;
+pub const RL_FUNC_ADD = c.RL_FUNC_ADD;
+pub const RL_MIN = c.RL_MIN;
+pub const RL_MAX = c.RL_MAX;
+pub const RL_FUNC_SUBTRACT = c.RL_FUNC_SUBTRACT;
+pub const RL_FUNC_REVERSE_SUBTRACT = c.RL_FUNC_REVERSE_SUBTRACT;
+pub const RL_BLEND_EQUATION = c.RL_BLEND_EQUATION;
+pub const RL_BLEND_EQUATION_RGB = c.RL_BLEND_EQUATION_RGB;
+pub const RL_BLEND_EQUATION_ALPHA = c.RL_BLEND_EQUATION_ALPHA;
+pub const RL_BLEND_DST_RGB = c.RL_BLEND_DST_RGB;
+pub const RL_BLEND_SRC_RGB = c.RL_BLEND_SRC_RGB;
+pub const RL_BLEND_DST_ALPHA = c.RL_BLEND_DST_ALPHA;
+pub const RL_BLEND_SRC_ALPHA = c.RL_BLEND_SRC_ALPHA;
+pub const RL_BLEND_COLOR = c.RL_BLEND_COLOR;
+pub const RL_READ_FRAMEBUFFER = c.RL_READ_FRAMEBUFFER;
+pub const RL_DRAW_FRAMEBUFFER = c.RL_DRAW_FRAMEBUFFER;
+pub const RL_DEFAULT_SHADER_ATTRIB_LOCATION_POSITION = c.RL_DEFAULT_SHADER_ATTRIB_LOCATION_POSITION;
+pub const RL_DEFAULT_SHADER_ATTRIB_LOCATION_TEXCOORD = c.RL_DEFAULT_SHADER_ATTRIB_LOCATION_TEXCOORD;
+pub const RL_DEFAULT_SHADER_ATTRIB_LOCATION_NORMAL = c.RL_DEFAULT_SHADER_ATTRIB_LOCATION_NORMAL;
+pub const RL_DEFAULT_SHADER_ATTRIB_LOCATION_COLOR = c.RL_DEFAULT_SHADER_ATTRIB_LOCATION_COLOR;
+pub const RL_DEFAULT_SHADER_ATTRIB_LOCATION_TANGENT = c.RL_DEFAULT_SHADER_ATTRIB_LOCATION_TANGENT;
+pub const RL_DEFAULT_SHADER_ATTRIB_LOCATION_TEXCOORD2 = c.RL_DEFAULT_SHADER_ATTRIB_LOCATION_TEXCOORD2;
+pub const RL_DEFAULT_SHADER_ATTRIB_LOCATION_INDICES = c.RL_DEFAULT_SHADER_ATTRIB_LOCATION_INDICES;
