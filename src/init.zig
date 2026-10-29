@@ -6,12 +6,12 @@ pub const c = @import("c");
 comptime {
     @setEvalBranchQuota(10_000);
 
-    const decls = @typeInfo(@This()).@"struct".decls;
+    const decls = @typeInfo(@This()).@"struct".decl_names;
 
     // check for type errors in everything but c decls
-    for (decls) |decl| {
-        if (!(decl.name.len == 1 and decl.name[0] == 'c')) {
-            const d = @field(@This(), decl.name);
+    for (decls) |name| {
+        if (!(name.len == 1 and name[0] == 'c')) {
+            const d = @field(@This(), name);
 
             if (@TypeOf(d) == type) switch (@typeInfo(d)) {
                 .@"struct", .@"enum", .@"union", .@"opaque" => std.testing.refAllDecls(d),
@@ -24,49 +24,49 @@ comptime {
     // make sure structs are synced
     if (@import("test_options").check_raylib_decls) {
         var missing_decls: []const u8 = "MISSING DECLS: ";
-        for (@typeInfo(c).@"struct".decls) |decl| {
-            if (std.ascii.isUpper(decl.name[0]) and // horrible workaround for @compileError decls
-                std.ascii.isLower(decl.name[1]) and
-                @typeInfo(@TypeOf(@field(c, decl.name))) == .@"fn" and
-                !@hasDecl(@This(), decl.name) and
-                !@hasDecl(rm, decl.name)) missing_decls = missing_decls ++ decl.name ++ "\n";
+        for (@typeInfo(c).@"struct".decl_names) |name| {
+            if (std.ascii.isUpper(name[0]) and // horrible workaround for @compileError decls
+                std.ascii.isLower(name[1]) and
+                @typeInfo(@TypeOf(@field(c, name))) == .@"fn" and
+                !@hasDecl(@This(), name) and
+                !@hasDecl(rm, name)) missing_decls = missing_decls ++ name ++ "\n";
         }
         if (missing_decls.len > "MISSING DECLS: ".len) {
             @compileError(missing_decls);
         }
     }
 
-    for (decls) |decl| {
-        const ThisDecl = @field(@This(), decl.name);
+    for (decls) |name| {
+        const ThisDecl = @field(@This(), name);
 
-        if (!@hasDecl(c, decl.name) or
+        if (!@hasDecl(c, name) or
             @TypeOf(ThisDecl) != type) continue;
 
-        const CDecl = @field(c, decl.name);
+        const CDecl = @field(c, name);
 
         if (std.meta.activeTag(@typeInfo(ThisDecl)) != std.meta.activeTag(@typeInfo(CDecl))) {
             if (@sizeOf(ThisDecl) != @sizeOf(CDecl)) {
-                fail("{s} has size of {}, expected {}", .{ decl.name, @sizeOf(ThisDecl), @sizeOf(CDecl) });
+                fail("{s} has size of {}, expected {}", .{ name, @sizeOf(ThisDecl), @sizeOf(CDecl) });
             }
             continue;
         }
 
         switch (@typeInfo(ThisDecl)) {
-            .@"struct" => checkStructDecl(decl),
-            .@"fn" => checkFnDecl(decl),
+            .@"struct" => checkStructDecl(name),
+            .@"fn" => checkFnDecl(name),
             else => continue,
         }
     }
 }
 
-fn checkStructDecl(decl: std.builtin.Type.Declaration) void {
-    const ThisDecl = @field(@This(), decl.name);
-    const CDecl = @field(c, decl.name);
+fn checkStructDecl(decl_name: []const u8) void {
+    const ThisDecl = @field(@This(), decl_name);
+    const CDecl = @field(c, decl_name);
 
     if (@sizeOf(CDecl) != @sizeOf(ThisDecl)) {
         @compileError(
             std.fmt.comptimePrint("Mismatched size for type {s}. Expected {} found {}", .{
-                decl.name,
+                decl_name,
                 @sizeOf(CDecl),
                 @sizeOf(ThisDecl),
             }),
@@ -76,34 +76,34 @@ fn checkStructDecl(decl: std.builtin.Type.Declaration) void {
     const ThisDecl_info = @typeInfo(ThisDecl).@"struct";
     const CDecl_info = @typeInfo(CDecl).@"struct";
 
-    if (ThisDecl_info.fields.len != CDecl_info.fields.len) {
+    if (ThisDecl_info.field_names.len != CDecl_info.field_names.len) {
         fail("Mismatched fields len for type {s}. Expected {} found {}", .{
-            decl.name,
-            CDecl_info.fields.len,
-            ThisDecl_info.fields.len,
+            decl_name,
+            CDecl_info.field_names.len,
+            ThisDecl_info.field_names.len,
         });
     }
 
-    for (ThisDecl_info.fields) |this_field| {
+    for (ThisDecl_info.field_names, ThisDecl_info.field_types) |this_name, ThisType| {
         @setEvalBranchQuota(20000);
 
-        const this_field_info = @typeInfo(this_field.type);
-        const c_field = @FieldType(CDecl, this_field.name);
+        const this_field_info = @typeInfo(ThisType);
+        const c_field = @FieldType(CDecl, this_name);
         const c_field_info = @typeInfo(c_field);
 
-        if (@offsetOf(ThisDecl, this_field.name) != @offsetOf(CDecl, this_field.name)) {
+        if (@offsetOf(ThisDecl, this_name) != @offsetOf(CDecl, this_name)) {
             fail("Mismatched field offset `{s}` for type `{s}`. Expected {} found {}", .{
                 c_field.name,
-                decl.name,
+                decl_name,
                 @offsetOf(CDecl, c_field.name),
-                @offsetOf(ThisDecl, this_field.name),
+                @offsetOf(ThisDecl, this_name),
             });
         }
 
-        if (this_field.type != c_field) bad_field_type: {
+        if (ThisType != c_field) bad_field_type: {
             switch (c_field_info) {
                 .pointer, .optional, .array, .@"struct" => {
-                    if (@sizeOf(this_field.type) == @sizeOf(c_field)) break :bad_field_type;
+                    if (@sizeOf(ThisType) == @sizeOf(c_field)) break :bad_field_type;
                 },
                 else => {
                     if (c_field_info == .int and this_field_info == .@"enum" and
@@ -112,28 +112,28 @@ fn checkStructDecl(decl: std.builtin.Type.Declaration) void {
             }
 
             fail("Mismatched field type `{s}` for type `{s}`. Expected {} found {}", .{
-                this_field.name,
-                decl.name,
+                this_name,
+                decl_name,
                 c_field,
-                this_field.type,
+                ThisType,
             });
         }
     }
 }
 
-fn checkFnDecl(decl: std.builtin.Type.Declaration) void {
-    const ThisDecl = @field(@This(), decl.name);
+fn checkFnDecl(decl_name: []const u8) void {
+    const ThisDecl = @field(@This(), decl_name);
     const this_ti = @typeInfo(ThisDecl).@"fn";
-    const CDecl = @field(c, decl.name);
+    const CDecl = @field(c, decl_name);
     const c_ti = @typeInfo(CDecl).@"fn";
 
     if (this_ti.params.len != c_ti.params.len) {
-        fail("function {s} has differing param length. expected {} found {}", .{ decl.name, c_ti.params.len, this_ti.params.len });
+        fail("function {s} has differing param length. expected {} found {}", .{ decl_name, c_ti.params.len, this_ti.params.len });
     }
 
     for (this_ti.params, c_ti.params, 0..) |this_param, c_param, i| {
         if (this_param.type != c_param.type) {
-            fail("function {s}'s param {} has type {}, expected {}", .{ decl.name, i, this_param.type, c_param.type });
+            fail("function {s}'s param {} has type {}, expected {}", .{ decl_name, i, this_param.type, c_param.type });
         }
     }
 }
@@ -186,12 +186,20 @@ pub const Color = extern struct {
         return .{ .r = color.r, .g = color.g, .b = color.b, .a = color.a };
     }
 
-    pub fn init(r: u8, g: u8, b: u8, a: u8) Color {
-        return .{ .r = r, .g = g, .b = b, .a = a };
+    pub fn init(r: u8, g: u8, b: u8) Color {
+        return .{ .r = r, .g = g, .b = b, .a = 255 };
     }
 
-    pub fn init01(r: f32, g: f32, b: f32, a: f32) Color {
-        return init(@intFromFloat(r * 255), @intFromFloat(g * 255), @intFromFloat(b * 255), @intFromFloat(a * 255));
+    pub fn initAlpha(r: u8, g: u8, b: u8, a: f32) Color {
+        return .{ .r = r, .g = g, .b = b, .a = @intFromFloat(a * 255) };
+    }
+
+    pub fn init01(r: f32, g: f32, b: f32) Color {
+        return .{ .r = @intFromFloat(r * 255), .g = @intFromFloat(g * 255), .b = @intFromFloat(b * 255), .a = 255 };
+    }
+
+    pub fn initAlpha01(r: f32, g: f32, b: f32, a: f32) Color {
+        return .{ .r = @intFromFloat(r * 255), .g = @intFromFloat(g * 255), .b = @intFromFloat(b * 255), .a = @intFromFloat(a * 255) };
     }
 
     pub fn splat(v: u8) Color {
@@ -199,7 +207,38 @@ pub const Color = extern struct {
     }
 
     pub fn grayTone(v: u8) Color {
-        return .{ .r = v, .g = v, .b = v, .a = 255 };
+        return .grayToneAlpha(v, 1);
+    }
+
+    pub fn grayToneAlpha(v: u8, a: f32) Color {
+        return .initAlpha(v, v, v, a);
+    }
+
+    pub fn addSaturating(a: Color, b: Color) Color {
+        return .{
+            .r = a.r +| b.r,
+            .g = a.g +| b.g,
+            .b = a.b +| b.b,
+            .a = a.a +| b.a,
+        };
+    }
+
+    pub fn subSaturating(a: Color, b: Color) Color {
+        return .{
+            .r = a.r -| b.r,
+            .g = a.g -| b.g,
+            .b = a.b -| b.b,
+            .a = a.a -| b.a,
+        };
+    }
+
+    pub fn inverse(v: Color) Color {
+        return .{
+            .r = 255 - v.r,
+            .g = 255 - v.g,
+            .b = 255 - v.b,
+            .a = v.a,
+        };
     }
 
     pub fn randomC() Color {
@@ -250,6 +289,14 @@ pub const Color = extern struct {
             .a = @truncate(hexValue),
         };
     }
+
+    pub fn to01Array(color: Color) [4]f32 {
+        const r: f32 = @floatFromInt(color.r);
+        const g: f32 = @floatFromInt(color.g);
+        const b: f32 = @floatFromInt(color.b);
+        const a: f32 = @floatFromInt(color.a);
+        return .{ r / 255.0, g / 255.0, b / 255.0, a / 255.0 };
+    }
 };
 
 pub const Vector2 = extern struct {
@@ -269,7 +316,7 @@ pub const Vector2 = extern struct {
     }
 
     pub fn toSimd(self: @This()) @Vector(2, f32) {
-        return @bitCast(self);
+        return .{ self.x, self.y };
     }
 
     pub fn addEql(self: *Vector2, other: Vector2) void {
@@ -314,6 +361,8 @@ pub const Vector2 = extern struct {
     }
 
     pub const one: Vector2 = .{ .x = 1, .y = 1 };
+    pub const inf: Vector2 = .{ .x = std.math.inf(f32), .y = std.math.inf(f32) };
+
     pub const add = rm.Vector2Add;
     pub const addValue = rm.Vector2AddValue;
     pub const sub = rm.Vector2Subtract;
@@ -362,7 +411,7 @@ pub const Vector3 = extern struct {
     }
 
     pub fn toSimd(self: @This()) @Vector(3, f32) {
-        return @bitCast(self);
+        return .{ self.x, self.y, self.z };
     }
 
     pub fn format(value: Vector3, writer: *std.Io.Writer) !void {
@@ -427,7 +476,7 @@ pub const Vector4 = extern struct {
     }
 
     pub fn toSimd(self: @This()) @Vector(4, f32) {
-        return @bitCast(self);
+        return .{ self.x, self.y, self.z, self.w };
     }
 
     pub fn xy(v: Vector4) Vector2 {
@@ -593,6 +642,12 @@ pub const Rectangle = extern struct {
 
     pub fn round(self: Rectangle) Rectangle {
         return .init(@round(self.x), @round(self.y), @round(self.width), @round(self.height));
+    }
+
+    pub fn toScreen(self: Rectangle, camera: Camera2D) Rectangle {
+        const top_left = camera.getWorldToScreen(self.position());
+        const bot_right = camera.getWorldToScreen(self.position().add(self.size()));
+        return .init(top_left.x, top_left.y, bot_right.x - top_left.x, bot_right.y - top_left.y);
     }
 
     pub fn format(self: @This(), writer: *std.Io.Writer) !void {
@@ -1241,12 +1296,12 @@ pub const ConfigFlags = packed struct(c_uint) {
 
     test ConfigFlags {
         try std.testing.expectEqual(
-            @as(c_uint, @bitCast(ConfigFlags{
+            @backingInt(ConfigFlags{
                 .vsync_hint = true,
                 .fullscreen_mode = true,
                 .borderless_windowed_mode = true,
                 .msaa_4x_hint = true,
-            })),
+            }),
             c.FLAG_VSYNC_HINT |
                 c.FLAG_FULLSCREEN_MODE |
                 c.FLAG_BORDERLESS_WINDOWED_MODE |
@@ -1266,7 +1321,7 @@ pub const TraceLogLevel = enum(c_int) {
     none = c.LOG_NONE,
 
     pub fn int(self: @This()) c_int {
-        return @intFromEnum(self);
+        return @backingInt(self);
     }
 };
 
@@ -1383,7 +1438,7 @@ pub const KeyboardKey = enum(c_int) {
     volume_down = c.KEY_VOLUME_DOWN,
 
     pub fn int(self: @This()) c_int {
-        return @intFromEnum(self);
+        return @backingInt(self);
     }
 };
 
@@ -1397,7 +1452,7 @@ pub const MouseButton = enum(c_int) {
     back = c.MOUSE_BUTTON_BACK,
 
     pub fn int(self: @This()) c_int {
-        return @intFromEnum(self);
+        return @backingInt(self);
     }
 };
 
@@ -1415,7 +1470,7 @@ pub const MouseCursor = enum(c_int) {
     not_allowed = c.MOUSE_CURSOR_NOT_ALLOWED,
 
     pub fn int(self: @This()) c_int {
-        return @intFromEnum(self);
+        return @backingInt(self);
     }
 };
 
@@ -1440,7 +1495,7 @@ pub const GamepadButton = enum(c_int) {
     right_thumb = c.GAMEPAD_BUTTON_RIGHT_THUMB,
 
     pub fn int(self: @This()) c_int {
-        return @intFromEnum(self);
+        return @backingInt(self);
     }
 };
 
@@ -1453,7 +1508,7 @@ pub const GamepadAxis = enum(c_int) {
     right_trigger = c.GAMEPAD_AXIS_RIGHT_TRIGGER,
 
     pub fn int(self: @This()) c_int {
-        return @intFromEnum(self);
+        return @backingInt(self);
     }
 };
 
@@ -1474,11 +1529,11 @@ pub const MaterialMapIndex = enum(c_int) {
     pub const specular: MaterialMapIndex = .metalness;
 
     pub fn int(self: @This()) c_int {
-        return @intFromEnum(self);
+        return @backingInt(self);
     }
 
     pub fn uint(self: @This()) c_uint {
-        return @intCast(@intFromEnum(self));
+        return @intCast(@backingInt(self));
     }
 };
 
@@ -1514,11 +1569,11 @@ pub const ShaderLocationIndex = enum(c_int) {
     pub const map_specular: ShaderLocationIndex = .map_metalness;
 
     pub fn int(self: @This()) c_int {
-        return @intFromEnum(self);
+        return @backingInt(self);
     }
 
     pub fn uint(self: @This()) c_uint {
-        return @intCast(@intFromEnum(self));
+        return @intCast(@backingInt(self));
     }
 };
 
@@ -1534,7 +1589,7 @@ pub const ShaderUniformDataType = enum(c_int) {
     sampler2d = c.SHADER_UNIFORM_SAMPLER2D,
 
     pub fn toInt(self: @This()) c_int {
-        return @intFromEnum(self);
+        return @backingInt(self);
     }
 };
 
@@ -1545,7 +1600,7 @@ pub const ShaderAttributeDataType = enum(c_int) {
     vec4 = c.SHADER_ATTRIB_VEC4,
 
     pub fn int(self: @This()) c_int {
-        return @intFromEnum(self);
+        return @backingInt(self);
     }
 };
 
@@ -1576,7 +1631,7 @@ pub const PixelFormat = enum(c_int) {
     compressed_astc_8x8_rgba = c.PIXELFORMAT_COMPRESSED_ASTC_8x8_RGBA,
 
     pub fn int(self: @This()) c_int {
-        return @intFromEnum(self);
+        return @backingInt(self);
     }
 };
 
@@ -1589,7 +1644,7 @@ pub const TextureFilter = enum(c_int) {
     anisotropic_16x = c.TEXTURE_FILTER_ANISOTROPIC_16X,
 
     pub fn int(self: @This()) c_int {
-        return @intFromEnum(self);
+        return @backingInt(self);
     }
 };
 
@@ -1600,7 +1655,7 @@ pub const TextureWrap = enum(c_int) {
     mirror_clamp = c.TEXTURE_WRAP_MIRROR_CLAMP,
 
     pub fn int(self: @This()) c_int {
-        return @intFromEnum(self);
+        return @backingInt(self);
     }
 };
 
@@ -1612,7 +1667,7 @@ pub const CubemapLayout = enum(c_int) {
     cross_four_by_three = c.CUBEMAP_LAYOUT_CROSS_FOUR_BY_THREE,
 
     pub fn int(self: @This()) c_int {
-        return @intFromEnum(self);
+        return @backingInt(self);
     }
 };
 
@@ -1622,7 +1677,7 @@ pub const FontType = enum(c_int) {
     sdf = c.FONT_SDF,
 
     pub fn int(self: @This()) c_int {
-        return @intFromEnum(self);
+        return @backingInt(self);
     }
 };
 
@@ -1637,12 +1692,12 @@ pub const BlendMode = enum(c_int) {
     custom_separate = c.BLEND_CUSTOM_SEPARATE,
 
     pub fn int(self: @This()) c_int {
-        return @intFromEnum(self);
+        return @backingInt(self);
     }
 };
 
 pub const Gesture = packed struct(c_uint) {
-    pub const none: Gesture = @bitCast(c.GESTURE_NONE);
+    pub const none: Gesture = @fromBackingInt(c.GESTURE_NONE);
 
     tap: bool = false, // c.GESTURE_TAP,
     doubletap: bool = false, // c.GESTURE_DOUBLETAP,
@@ -1658,12 +1713,12 @@ pub const Gesture = packed struct(c_uint) {
 
     test Gesture {
         try std.testing.expectEqual(
-            @as(c_uint, @bitCast(Gesture{
+            @backingInt(Gesture{
                 .tap = true,
                 .drag = true,
                 .swipe_down = true,
                 .pinch_out = true,
-            })),
+            }),
             c.GESTURE_TAP |
                 c.GESTURE_DRAG |
                 c.GESTURE_SWIPE_DOWN |
@@ -1680,7 +1735,7 @@ pub const CameraMode = enum(c_int) {
     third_person = c.CAMERA_THIRD_PERSON,
 
     pub fn int(self: @This()) c_int {
-        return @intFromEnum(self);
+        return @backingInt(self);
     }
 };
 
@@ -1689,7 +1744,7 @@ pub const CameraProjection = enum(c_int) {
     orthographic = c.CAMERA_ORTHOGRAPHIC,
 
     pub fn int(self: @This()) c_int {
-        return @intFromEnum(self);
+        return @backingInt(self);
     }
 };
 
@@ -1699,7 +1754,7 @@ pub const NPatchLayout = enum(c_int) {
     three_patch_horizontal = c.NPATCH_THREE_PATCH_HORIZONTAL,
 
     pub fn int(self: @This()) c_int {
-        return @intFromEnum(self);
+        return @backingInt(self);
     }
 };
 
@@ -1792,19 +1847,19 @@ pub const DrawTextWriter = @import("DrawTextWriter.zig");
 
 pub fn DrawTextFmt(comptime fmt: []const u8, args: anytype, x: c_int, y: c_int, font_size: c_int, tint: Color) void {
     var w = DrawTextWriter.init(.fromInt(x, y), font_size, tint, .{});
-    comptime std.debug.assert(@typeInfo(@typeInfo(@typeInfo(@TypeOf(DrawTextWriter.drain)).@"fn".return_type.?).error_union.error_set).error_set.?.len == 0);
+    comptime std.debug.assert(@typeInfo(@typeInfo(@typeInfo(@TypeOf(DrawTextWriter.drain)).@"fn".return_type.?).error_union.error_set).error_set.error_names.?.len == 0);
     w.interface.print(fmt, args) catch unreachable;
 }
 
 pub fn DrawTextFmtV(comptime fmt: []const u8, args: anytype, pos: Vector2, font_size: c_int, tint: Color) void {
     var w = DrawTextWriter.init(pos, font_size, tint, .{});
-    comptime std.debug.assert(@typeInfo(@typeInfo(@typeInfo(@TypeOf(DrawTextWriter.drain)).@"fn".return_type.?).error_union.error_set).error_set.?.len == 0);
+    comptime std.debug.assert(@typeInfo(@typeInfo(@typeInfo(@TypeOf(DrawTextWriter.drain)).@"fn".return_type.?).error_union.error_set).error_set.error_names.?.len == 0);
     w.interface.print(fmt, args) catch unreachable;
 }
 
 pub fn DrawTextFmtEx(comptime fmt: []const u8, args: anytype, font: Font, pos: Vector2, font_size: c_int, spacing: f32, tint: Color) void {
     var w = DrawTextWriter.init(pos, font_size, tint, .{ .font = font, .spacing = spacing });
-    comptime std.debug.assert(@typeInfo(@typeInfo(@typeInfo(@TypeOf(DrawTextWriter.drain)).@"fn".return_type.?).error_union.error_set).error_set.?.len == 0);
+    comptime std.debug.assert(@typeInfo(@typeInfo(@typeInfo(@TypeOf(DrawTextWriter.drain)).@"fn".return_type.?).error_union.error_set).error_set.error_names.?.len == 0);
     w.interface.print(fmt, args) catch unreachable;
 }
 
@@ -1882,7 +1937,8 @@ test MeasureTextSliceEx {
         \\at measuring text
     ;
     const font = try LoadFontDefault();
-    const expected_size = c.MeasureTextEx(@bitCast(font), str, 20, 1);
+    const c_font: *const c.Font = @ptrCast(&font);
+    const expected_size = c.MeasureTextEx(c_font.*, str, 20, 1);
     const actual_size = MeasureTextSliceEx(font, str, 20, 1);
     try std.testing.expect(actual_size.x > 0);
     try std.testing.expect(actual_size.y > 0);
@@ -1910,7 +1966,7 @@ pub fn MeasureTextFmt(comptime fmt: []const u8, args: anytype, fontSize_: c_int)
 
 pub fn MeasureTextFmtEx(font: Font, comptime fmt: []const u8, args: anytype, fontSize: f32, spacing: f32) Vector2 {
     var w: MeasureTextWriter = .init(fontSize, .{ .spacing = spacing, .font = font });
-    comptime std.debug.assert(@typeInfo(@typeInfo(@typeInfo(@TypeOf(DrawTextWriter.drain)).@"fn".return_type.?).error_union.error_set).error_set.?.len == 0);
+    comptime std.debug.assert(@typeInfo(@typeInfo(@typeInfo(@TypeOf(DrawTextWriter.drain)).@"fn".return_type.?).error_union.error_set).error_set.error_names.?.len == 0);
     w.interface.print(fmt, args) catch unreachable;
     return w.size;
 }
@@ -1927,7 +1983,8 @@ test MeasureTextFmtEx {
         \\at measuring text
     ;
     const font = try LoadFontDefault();
-    const expected_size = c.MeasureTextEx(@bitCast(font), final_str, 20, 1);
+    const c_font: *const c.Font = @ptrCast(&font);
+    const expected_size = c.MeasureTextEx(c_font.*, final_str, 20, 1);
     const actual_size = MeasureTextFmtEx(font, fmt_str, .{ "test string", "how well", "measuring text" }, 20, 1);
     try std.testing.expect(actual_size.x > 0);
     try std.testing.expect(actual_size.y > 0);
